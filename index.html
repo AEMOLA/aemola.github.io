@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title> برنامه کلاسی هوشمند </title>
+    <title>برنامه کلاسی هوشمند | تنظیم زنگ</title>
     <!-- فونت وزیر -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@latest/dist/font-face.css">
     <!-- فونت‌آیکن -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        /* استایل‌های قبلی (برای اختصار حذف نشده، اما می‌توانید از کد قبلی کپی کنید) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Vazir', 'Tahoma', sans-serif;
@@ -22,7 +23,7 @@
         }
         .container { max-width: 1400px; margin: 0 auto; width: 100%; flex: 1; }
 
-        /* ===== هدر ===== */
+        /* ===== هدر با لوگو ===== */
         .header {
             background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
             color: #d4af37;
@@ -43,6 +44,13 @@
             gap: 10px;
             flex-wrap: wrap;
         }
+        .header h1 img {
+            height: 60px;
+            margin-left: 15px;
+            border-radius: 50%;
+            background-color: #d4af37;
+            padding: 5px;
+        }
         .header h1 i { color: #f0e68c; font-size: 2rem; }
         .header p {
             font-size: 1rem;
@@ -55,7 +63,7 @@
             border-radius: 40px;
         }
 
-        /* ===== پنل بالایی (تاریخ/ساعت + لاگین ساده) ===== */
+        /* ===== پنل بالایی ===== */
         .top-panel {
             display: flex;
             flex-wrap: wrap;
@@ -103,7 +111,7 @@
             box-shadow: 0 4px 0 #8b691f;
         }
 
-        /* ===== لاگین ساده (غیرکشویی، کم‌حجم) ===== */
+        /* ===== لاگین ساده ===== */
         .login-simple {
             background: #1a1a1a;
             border: 2px solid #d4af37;
@@ -120,7 +128,7 @@
             border-radius: 40px;
             padding: 0.4rem 0.8rem;
             color: white;
-            width: 90px;
+            width: 100px;
             font-family: 'Vazir', sans-serif;
             font-size: 0.85rem;
         }
@@ -437,7 +445,7 @@
             border-radius: 0 0 36px 36px;
         }
 
-        /* ===== فرم افزودن/ویرایش درس ===== */
+        /* ===== فرم افزودن/ویرایش درس و تنظیمات زنگ ===== */
         .add-course-section {
             margin: 40px 0 20px;
             background: linear-gradient(145deg, #fff9e6, #fff2d7);
@@ -479,7 +487,7 @@
             align-items: center;
             gap: 10px;
         }
-        .btn-add, .btn-cancel {
+        .btn-add, .btn-cancel, .btn-save-sound {
             padding: 10px 25px;
             border-radius: 40px;
             font-weight: 800;
@@ -495,8 +503,17 @@
         }
         .btn-add { background: #1a1a1a; color: #d4af37; }
         .btn-cancel { background: #7f8c8d; color: white; border-color: #95a5a6; }
+        .btn-save-sound { background: #27ae60; color: white; border-color: #d4af37; }
         .btn-add:hover { background: #d4af37; color: #1a1a1a; }
         .btn-cancel:hover { background: #95a5a6; }
+        .btn-save-sound:hover { background: #2ecc71; }
+
+        /* بخش تنظیمات زنگ */
+        .sound-settings {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 3px dashed #d4af37;
+        }
 
         /* ===== فوتر امضا ===== */
         .designer-footer {
@@ -560,12 +577,20 @@
             .login-simple { justify-content: center; }
         }
     </style>
+    <!-- Firebase SDK (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1><i class="fas fa-calendar-check"></i> برنامه کلاسی هوشمند <i class="fas fa-map-pin"></i></h1>
-            <p>🎓 همیشه به‌روز، همیشه در جریان </p>
+            <h1>
+                <img src="https://cdn-icons-png.flaticon.com/512/2991/2991102.png" alt="لوگوی برنامه" style="height: 60px; margin-left: 15px; border-radius: 50%; background-color: #d4af37; padding: 5px;">
+                برنامه کلاسی هوشمند
+                <i class="fas fa-map-pin"></i>
+            </h1>
+            <p>🎓 همیشه به‌روز، همیشه در جریان</p>
         </div>
 
         <div class="top-panel">
@@ -575,9 +600,9 @@
                 <div class="notification-badge" id="notificationBadge"><i class="fas fa-bell"></i> <span id="notifText">بررسی کلاس‌ها...</span></div>
             </div>
 
-            <!-- لاگین ساده (غیرکشویی، کم حجم) -->
+            <!-- لاگین ساده -->
             <div class="login-simple" id="loginContainer">
-                <input type="text" id="username" placeholder="نام کاربری" value="">
+                <input type="email" id="email" placeholder="ایمیل" value="">
                 <input type="password" id="password" placeholder="رمز">
                 <button onclick="login()"><i class="fas fa-sign-in-alt"></i> ورود</button>
                 <button class="logout-btn" id="logoutBtn" onclick="logout()" style="display:none;"><i class="fas fa-sign-out-alt"></i> خروج</button>
@@ -595,7 +620,7 @@
                 <i class="fas fa-plus-circle" style="color: #b8860b;"></i> <span id="formTitle">افزودن درس جدید</span>
             </h3>
             <div class="add-course-form" id="courseForm">
-                <input type="hidden" id="editIndex" value="-1">
+                <input type="hidden" id="editId" value="">
                 <div class="form-group"><label><i class="fas fa-book"></i> نام درس</label><input type="text" id="courseName" placeholder="مثال: ریاضی"></div>
                 <div class="form-group"><label><i class="fas fa-hashtag"></i> کد درس</label><input type="text" id="courseCode" placeholder="مثال: ۱۲۳۴"></div>
                 <div class="form-group"><label><i class="fas fa-calendar-day"></i> روز هفته</label>
@@ -624,6 +649,17 @@
                     <button class="btn-cancel" onclick="cancelEdit()"><i class="fas fa-times"></i> لغو</button>
                 </div>
             </div>
+
+            <!-- بخش تنظیمات زنگ (فقط برای ادمین) -->
+            <div class="sound-settings">
+                <h4 style="color: #1a1a1a; margin-bottom: 15px;"><i class="fas fa-music"></i> تنظیم صدای زنگ</h4>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                    <input type="url" id="bellSoundUrl" placeholder="لینک فایل صوتی (MP3)" style="flex: 1; min-width: 250px; padding: 10px; border-radius: 40px; border: 2px solid #d4af37;">
+                    <button class="btn-save-sound" onclick="saveBellSound()"><i class="fas fa-save"></i> ذخیره زنگ</button>
+                    <button class="btn-cancel" onclick="playTestBell()"><i class="fas fa-play"></i> تست زنگ</button>
+                </div>
+                <p style="margin-top: 10px; font-size: 0.9rem; color: #666;">مثال: https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3</p>
+            </div>
         </div>
 
         <div class="designer-footer">
@@ -635,74 +671,141 @@
         </div>
     </div>
 
-    <!-- فایل صوتی زنگ -->
-    <audio id="bellSound" preload="auto">
-        <source src="https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3" type="audio/mpeg">
-    </audio>
+    <!-- المان صوتی (پویا) -->
+    <audio id="bellSound" preload="auto"></audio>
 
     <script>
         (function() {
-            const TEHRAN_OFFSET = 3.5 * 60 * 60 * 1000;
-            const ADMIN_HASH = "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918";
-            const USERNAME = "MOLA";
+            // Firebase config
+            const firebaseConfig = {
+                apiKey: "AIzaSyAtU9XMjr-0DM7A3-CWHkOxHrCJ5JOL3OA",
+                authDomain: "aemola.firebaseapp.com",
+                projectId: "aemola",
+                storageBucket: "aemola.firebasestorage.app",
+                messagingSenderId: "528174826911",
+                appId: "1:528174826911:web:da839401e904fc3ddd69aa",
+                measurementId: "G-MLCYQJTVWY"
+            };
 
+            firebase.initializeApp(firebaseConfig);
+            const db = firebase.firestore();
+            const auth = firebase.auth();
+
+            const TEHRAN_OFFSET = 3.5 * 60 * 60 * 1000;
             let coursesData = [];
             let isLoggedIn = false;
             let bellPlayed = [];
+            let unsubscribeCourses = null;
+            let unsubscribeSettings = null;
 
             const bellSound = document.getElementById('bellSound');
+            let bellSoundUrl = "https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3"; // پیش‌فرض
 
-            // هش
-            async function hashPassword(password) {
-                const encoder = new TextEncoder();
-                const data = encoder.encode(password);
-                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-                const hashArray = Array.from(new Uint8Array(hashBuffer));
-                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            // بارگذاری تنظیمات زنگ
+            function subscribeToSettings() {
+                const settingsRef = db.collection('settings').doc('general');
+                unsubscribeSettings = settingsRef.onSnapshot(doc => {
+                    if (doc.exists) {
+                        bellSoundUrl = doc.data().bellSoundUrl || bellSoundUrl;
+                    } else {
+                        // اگر سند نبود، ایجاد کن با مقدار پیش‌فرض
+                        settingsRef.set({ bellSoundUrl: bellSoundUrl });
+                    }
+                    // به‌روزرسانی فیلد input اگر ادمین لاگین است
+                    if (isLoggedIn) {
+                        document.getElementById('bellSoundUrl').value = bellSoundUrl;
+                    }
+                }, error => {
+                    console.error('خطا در دریافت تنظیمات:', error);
+                });
             }
 
-            window.login = async function() {
-                const user = document.getElementById('username').value;
-                const pass = document.getElementById('password').value;
-                if (user !== USERNAME) {
-                    alert('نام کاربری اشتباه است');
+            // ذخیره لینک زنگ جدید
+            window.saveBellSound = async function() {
+                const newUrl = document.getElementById('bellSoundUrl').value.trim();
+                if (!newUrl) {
+                    alert('لطفاً لینک را وارد کنید');
                     return;
                 }
-                const hashed = await hashPassword(pass);
-                if (hashed === ADMIN_HASH) {
-                    isLoggedIn = true;
-                    localStorage.setItem('isLoggedIn', 'true');
-                    updateLoginUI();
+                try {
+                    await db.collection('settings').doc('general').set({ bellSoundUrl: newUrl });
+                    alert('تنظیمات زنگ ذخیره شد');
+                } catch (error) {
+                    alert('خطا در ذخیره: ' + error.message);
+                }
+            };
+
+            // تست زنگ
+            window.playTestBell = function() {
+                const testUrl = document.getElementById('bellSoundUrl').value.trim() || bellSoundUrl;
+                const audio = new Audio(testUrl);
+                audio.play().catch(e => alert('پخش صدا ممکن نیست: ' + e.message));
+            };
+
+            // بارگذاری لحظه‌ای درس‌ها
+            function subscribeToCourses() {
+                if (unsubscribeCourses) unsubscribeCourses();
+                const q = db.collection('courses').orderBy('dayIndex').orderBy('startTime');
+                unsubscribeCourses = q.onSnapshot(snapshot => {
+                    coursesData = [];
+                    snapshot.forEach(doc => {
+                        coursesData.push({ id: doc.id, ...doc.data() });
+                    });
+                    resetBellPlayed();
                     renderCards();
+                    updateCountdownsAndBell();
+                }, error => {
+                    console.error('خطا در دریافت داده:', error);
+                });
+            }
+
+            // وضعیت احراز هویت
+            auth.onAuthStateChanged(user => {
+                isLoggedIn = !!user;
+                updateLoginUI();
+                if (user) {
+                    subscribeToCourses();
+                    // وقتی ادمین وارد شد، فیلد لینک زنگ را با مقدار فعلی پر کن
+                    if (unsubscribeSettings) {
+                        // یک بار مقدار را واکشی کن (فعلاً با snapshot بعدی)
+                    }
                 } else {
-                    alert('رمز عبور اشتباه است');
+                    if (unsubscribeCourses) unsubscribeCourses();
+                    subscribeToCourses(); // حالت فقط خواندنی
+                }
+            });
+
+            // ورود
+            window.login = async function() {
+                const email = document.getElementById('email').value;
+                const pass = document.getElementById('password').value;
+                try {
+                    await auth.signInWithEmailAndPassword(email, pass);
+                } catch (error) {
+                    alert('خطا در ورود: ' + error.message);
                 }
             };
 
             window.logout = function() {
-                isLoggedIn = false;
-                localStorage.removeItem('isLoggedIn');
-                updateLoginUI();
-                renderCards();
+                auth.signOut();
                 cancelEdit();
             };
 
             function updateLoginUI() {
-                const loginContainer = document.getElementById('loginContainer');
-                const usernameInput = document.getElementById('username');
+                const emailInput = document.getElementById('email');
                 const passwordInput = document.getElementById('password');
-                const loginBtn = loginContainer.querySelector('button[onclick="login()"]');
+                const loginBtn = document.querySelector('#loginContainer button[onclick="login()"]');
                 const logoutBtn = document.getElementById('logoutBtn');
                 const adminSection = document.getElementById('adminSection');
 
                 if (isLoggedIn) {
-                    usernameInput.style.display = 'none';
+                    emailInput.style.display = 'none';
                     passwordInput.style.display = 'none';
                     loginBtn.style.display = 'none';
                     logoutBtn.style.display = 'inline-block';
                     adminSection.classList.add('visible');
                 } else {
-                    usernameInput.style.display = 'inline-block';
+                    emailInput.style.display = 'inline-block';
                     passwordInput.style.display = 'inline-block';
                     loginBtn.style.display = 'inline-flex';
                     logoutBtn.style.display = 'none';
@@ -710,44 +813,11 @@
                 }
             }
 
-            async function checkStoredLogin() {
-                const stored = localStorage.getItem('isLoggedIn');
-                if (stored === 'true') {
-                    isLoggedIn = true;
-                }
-                updateLoginUI();
-            }
-
-            const defaultCourses = [
-                { name: "کارآفرینی و مدیریت کسب و کار", code: "۳۷۲۰۲۶", dayIndex: 0, startTime: "07:30", endTime: "10:30", theoretical: 1.0, practical: 1.0, total: 2.0, group: "۹۱۱۸", professor: "مجید بازویار", location: "دانشکده ۴۰ انقلاب اسلامی تهران", examDate: "۱۴۰۵/۰۴/۰۷", examTime: "ساعت جلسه", examDuration: "مشخص نشده", examLocation: "مشخص نشده", isOnline: false, onlineLink: "" },
-                { name: "فیلمنامه‌نویسی انیمیشن کوتاه", code: "۳۷۲۰۰۸", dayIndex: 0, startTime: "10:30", endTime: "13:30", theoretical: 1.0, practical: 1.0, total: 2.0, group: "۹۱۳۰", professor: "مظاهر خادملو", location: "دانشکده ۴۰ انقلاب اسلامی تهران", examDate: "طبق اعلام مدرس", examTime: "", examDuration: "مشخص نشده", examLocation: "مشخص نشده", isOnline: false, onlineLink: "" },
-                { name: "دانش خانواده و جمعيت", code: "۹۱۲۸", dayIndex: 1, startTime: "11:30", endTime: "13:30", theoretical: 2.0, practical: 0.0, total: 2.0, group: "۱۱۱۴", professor: "محمدرضا بنیان جوادی", location: "دانشکده ۴۰ انقلاب اسلامی تهران", examDate: "۱۴۰۵/۰۴/۱۰", examTime: "ساعت جلسه", examDuration: "مشخص نشده", examLocation: "مشخص نشده", isOnline: false, onlineLink: "" },
-                { name: "طراحی شخصیت", code: "۳۷۲۰۱۰", dayIndex: 1, startTime: "13:30", endTime: "17:30", theoretical: 0.0, practical: 2.0, total: 2.0, group: "۹۱۲۲", professor: "عبدالعلی غنی‌زاده", location: "دانشکده ۴۰ انقلاب اسلامی تهران", examDate: "طبق اعلام مدرس", examTime: "", examDuration: "مشخص نشده", examLocation: "مشخص نشده", isOnline: false, onlineLink: "" },
-                { name: "کارتون و کاریکاتور", code: "۳۷۲۰۰۹", dayIndex: 2, startTime: "07:30", endTime: "11:30", theoretical: 1.0, practical: 1.0, total: 2.0, group: "۹۱۲۰", professor: "حسین کشت کار", location: "دانشکده ۴۰ انقلاب اسلامی تهران", examDate: "طبق اعلام مدرس", examTime: "", examDuration: "مشخص نشده", examLocation: "مشخص نشده", isOnline: false, onlineLink: "" },
-                { name: "فیلمنامه مصور", code: "۳۷۲۰۱۱", dayIndex: 2, startTime: "12:30", endTime: "15:30", theoretical: 1.0, practical: 1.0, total: 2.0, group: "۹۱۱۹", professor: "حسین کشت کار", location: "دانشکده ۴۰ انقلاب اسلامی تهران", examDate: "طبق اعلام مدرس", examTime: "", examDuration: "مشخص نشده", examLocation: "مشخص نشده", isOnline: false, onlineLink: "" }
-            ];
-
-            function loadFromStorage() {
-                const stored = localStorage.getItem('coursesData');
-                if (stored) { try { coursesData = JSON.parse(stored); } catch(e){ coursesData = [...defaultCourses]; } }
-                else { coursesData = [...defaultCourses]; }
-                coursesData.forEach(c => {
-                    if (c.theoretical === undefined) c.theoretical = 0.0;
-                    if (c.practical === undefined) c.practical = 0.0;
-                    if (c.total === undefined) c.total = 0.0;
-                });
-                resetBellPlayed();
-            }
-
             function resetBellPlayed() {
                 bellPlayed = new Array(coursesData.length).fill(false);
             }
 
-            function saveToStorage() {
-                localStorage.setItem('coursesData', JSON.stringify(coursesData));
-                resetBellPlayed();
-            }
-
+            // توابع کمکی
             function timeToMinutes(t) { let p = t.split(':'); return parseInt(p[0])*60 + parseInt(p[1]); }
             function getDayName(d) { return ['شنبه','یک‌شنبه','دوشنبه','سه‌شنبه','چهارشنبه','پنج‌شنبه','جمعه'][d]; }
 
@@ -783,26 +853,23 @@
                 const grid = document.getElementById('cardGrid');
                 grid.innerHTML = '';
                 sorted.forEach((course) => {
-                    const realIndex = coursesData.findIndex(c => 
-                        c.name === course.name && c.startTime === course.startTime && c.dayIndex === course.dayIndex
-                    );
                     const startH = parseInt(course.startTime.split(':')[0]);
                     const startM = parseInt(course.startTime.split(':')[1]);
 
                     const card = document.createElement('div');
                     card.className = 'course-card';
+                    card.setAttribute('data-id', course.id);
                     card.setAttribute('data-day', course.dayIndex);
                     card.setAttribute('data-start-hour', startH);
                     card.setAttribute('data-start-min', startM);
-                    card.setAttribute('data-index', realIndex);
                     card.setAttribute('onclick', 'toggleCard(this)');
 
                     let adminDiv = '';
                     if (isLoggedIn) {
                         adminDiv = `
                             <div class="admin-controls">
-                                <div class="edit-btn" onclick="event.stopPropagation(); editCourse(${realIndex})"><i class="fas fa-edit"></i></div>
-                                <div class="delete-btn" onclick="event.stopPropagation(); deleteCourse(${realIndex})"><i class="fas fa-trash"></i></div>
+                                <div class="edit-btn" onclick="event.stopPropagation(); editCourse('${course.id}')"><i class="fas fa-edit"></i></div>
+                                <div class="delete-btn" onclick="event.stopPropagation(); deleteCourse('${course.id}')"><i class="fas fa-trash"></i></div>
                             </div>
                         `;
                     }
@@ -824,7 +891,7 @@
                         <span class="summary-course-name">${course.name}</span>
                         ${onlineBadge}
                         ${onlineLink}
-                        <div class="countdown-area" id="countdown-${realIndex}"><i class="fas fa-hourglass-half"></i><span>در حال محاسبه...</span></div>
+                        <div class="countdown-area" id="countdown-${course.id}"><i class="fas fa-hourglass-half"></i><span>در حال محاسبه...</span></div>
                         <div class="expand-icon"><i class="fas fa-chevron-down"></i></div>
                     `;
 
@@ -875,10 +942,8 @@
                 let upcomingCount = 0;
 
                 cards.forEach(card => {
-                    const idx = card.getAttribute('data-index');
-                    if (!idx) return;
-                    const i = parseInt(idx);
-                    const course = coursesData[i];
+                    const courseId = card.getAttribute('data-id');
+                    const course = coursesData.find(c => c.id === courseId);
                     if (!course) return;
 
                     const cardDay = course.dayIndex;
@@ -926,12 +991,15 @@
                     const countSpan = card.querySelector('.countdown-area span');
                     if (countSpan) countSpan.innerText = displayText;
 
-                    if (isNowOngoing && !bellPlayed[i]) {
-                        playBell();
-                        bellPlayed[i] = true;
-                    }
-                    if (!isNowOngoing && bellPlayed[i]) {
-                        bellPlayed[i] = false;
+                    const index = coursesData.findIndex(c => c.id === courseId);
+                    if (index !== -1) {
+                        if (isNowOngoing && !bellPlayed[index]) {
+                            playBell();
+                            bellPlayed[index] = true;
+                        }
+                        if (!isNowOngoing && bellPlayed[index]) {
+                            bellPlayed[index] = false;
+                        }
                     }
                 });
 
@@ -943,14 +1011,16 @@
 
             function playBell() {
                 if (bellSound) {
+                    bellSound.src = bellSoundUrl;
                     bellSound.currentTime = 0;
                     bellSound.play().catch(e => console.log('پخش صدا ممکن نیست', e));
                 }
             }
 
-            window.editCourse = function(index) {
-                const course = coursesData[index];
-                document.getElementById('editIndex').value = index;
+            window.editCourse = function(id) {
+                const course = coursesData.find(c => c.id === id);
+                if (!course) return;
+                document.getElementById('editId').value = id;
                 document.getElementById('courseName').value = course.name;
                 document.getElementById('courseCode').value = course.code;
                 document.getElementById('courseDay').value = course.dayIndex;
@@ -968,15 +1038,13 @@
                 document.getElementById('adminSection').classList.add('visible');
             };
 
-            window.deleteCourse = function(index) {
+            window.deleteCourse = async function(id) {
                 if (confirm('آیا از حذف این درس اطمینان دارید؟')) {
-                    coursesData.splice(index, 1);
-                    saveToStorage();
-                    renderCards();
+                    await db.collection('courses').doc(id).delete();
                 }
             };
 
-            window.saveCourse = function() {
+            window.saveCourse = async function() {
                 const name = document.getElementById('courseName').value.trim();
                 const code = document.getElementById('courseCode').value.trim() || '---';
                 const dayIndex = parseInt(document.getElementById('courseDay').value);
@@ -992,7 +1060,7 @@
 
                 if (!name || !startTime || !endTime) { alert('لطفاً نام درس و ساعت را وارد کنید'); return; }
 
-                const newCourse = {
+                const courseData = {
                     name, code, dayIndex, startTime, endTime,
                     theoretical, practical, total,
                     group: '---', professor, location,
@@ -1000,19 +1068,21 @@
                     isOnline, onlineLink
                 };
 
-                const editIndex = parseInt(document.getElementById('editIndex').value);
-                if (editIndex >= 0) {
-                    coursesData[editIndex] = newCourse;
-                } else {
-                    coursesData.push(newCourse);
+                const editId = document.getElementById('editId').value;
+                try {
+                    if (editId) {
+                        await db.collection('courses').doc(editId).update(courseData);
+                    } else {
+                        await db.collection('courses').add(courseData);
+                    }
+                    cancelEdit();
+                } catch (error) {
+                    alert('خطا در ذخیره: ' + error.message);
                 }
-                saveToStorage();
-                cancelEdit();
-                renderCards();
             };
 
             window.cancelEdit = function() {
-                document.getElementById('editIndex').value = '-1';
+                document.getElementById('editId').value = '';
                 document.getElementById('courseName').value = '';
                 document.getElementById('courseCode').value = '';
                 document.getElementById('startTime').value = '08:00';
@@ -1040,12 +1110,11 @@
                 }
             }
 
-            loadFromStorage();
-            checkStoredLogin().then(() => {
-                renderCards();
-                requestNotification();
-                setInterval(updateCountdownsAndBell, 1000);
-            });
+            // شروع به کار
+            subscribeToSettings(); // تنظیمات زنگ
+            subscribeToCourses();  // درس‌ها
+            requestNotification();
+            setInterval(updateCountdownsAndBell, 1000);
         })();
     </script>
 </body>
