@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>برنامه کلاسی هوشمند | نسخه نهایی</title>
+    <title>برنامه کلاسی هوشمند | نسخه نهایی با گروه درسی</title>
     <!-- فونت وزیر -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@latest/dist/font-face.css">
     <!-- فونت‌آیکن -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* استایل‌ها مانند قبل (برای اختصار حذف نشده، اما می‌توانید از کد قبلی کپی کنید) */
+        /* همان استایل‌های قبلی (برای اختصار حذف نشده) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Vazir', 'Tahoma', sans-serif;
@@ -630,6 +630,9 @@
                 <div class="form-group"><label><i class="fas fa-chalkboard-teacher"></i> استاد</label><input type="text" id="professor" placeholder="نام استاد"></div>
                 <div class="form-group"><label><i class="fas fa-map-marker-alt"></i> مکان</label><input type="text" id="location" placeholder="دانشکده"></div>
                 
+                <!-- فیلد گروه درسی (اضافه شده) -->
+                <div class="form-group"><label><i class="fas fa-users-between-lines"></i> گروه درسی</label><input type="text" id="courseGroup" placeholder="مثال: ۱۱۱۴" value="---"></div>
+                
                 <!-- فیلدهای واحد -->
                 <div class="form-group"><label><i class="fas fa-calculator"></i> واحد تئوری</label><input type="number" step="0.1" min="0" id="theoretical" value="0.0"></div>
                 <div class="form-group"><label><i class="fas fa-calculator"></i> واحد عملی</label><input type="number" step="0.1" min="0" id="practical" value="0.0"></div>
@@ -670,12 +673,11 @@
         </div>
     </div>
 
-    <!-- المان صوتی (پویا) -->
+    <!-- المان صوتی -->
     <audio id="bellSound" preload="auto"></audio>
 
     <script>
         (function() {
-            // Firebase config
             const firebaseConfig = {
                 apiKey: "AIzaSyAtU9XMjr-0DM7A3-CWHkOxHrCJ5JOL3OA",
                 authDomain: "aemola.firebaseapp.com",
@@ -698,9 +700,8 @@
             let unsubscribeSettings = null;
 
             const bellSound = document.getElementById('bellSound');
-            let bellSoundUrl = "https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3"; // پیش‌فرض
+            let bellSoundUrl = "https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3";
 
-            // بارگذاری تنظیمات زنگ
             function subscribeToSettings() {
                 if (unsubscribeSettings) unsubscribeSettings();
                 const settingsRef = db.collection('settings').doc('general');
@@ -708,10 +709,8 @@
                     if (doc.exists) {
                         bellSoundUrl = doc.data().bellSoundUrl || bellSoundUrl;
                     } else {
-                        // اگر سند نبود، ایجاد کن با مقدار پیش‌فرض
                         settingsRef.set({ bellSoundUrl: bellSoundUrl }).catch(e => console.error('خطا در ایجاد settings:', e));
                     }
-                    // به‌روزرسانی فیلد input اگر ادمین لاگین است
                     if (isLoggedIn) {
                         document.getElementById('bellSoundUrl').value = bellSoundUrl;
                     }
@@ -720,13 +719,9 @@
                 });
             }
 
-            // ذخیره لینک زنگ جدید
             window.saveBellSound = async function() {
                 const newUrl = document.getElementById('bellSoundUrl').value.trim();
-                if (!newUrl) {
-                    alert('لطفاً لینک را وارد کنید');
-                    return;
-                }
+                if (!newUrl) { alert('لطفاً لینک را وارد کنید'); return; }
                 try {
                     await db.collection('settings').doc('general').set({ bellSoundUrl: newUrl });
                     alert('تنظیمات زنگ ذخیره شد');
@@ -735,29 +730,20 @@
                 }
             };
 
-            // تست زنگ
             window.playTestBell = function() {
                 const testUrl = document.getElementById('bellSoundUrl').value.trim() || bellSoundUrl;
                 const audio = new Audio(testUrl);
                 audio.play().catch(e => alert('پخش صدا ممکن نیست: ' + e.message));
             };
 
-            // بارگذاری لحظه‌ای درس‌ها
             function subscribeToCourses() {
-                if (unsubscribeCourses) {
-                    unsubscribeCourses();
-                }
-                // ایجاد کوئری با orderBy
+                if (unsubscribeCourses) unsubscribeCourses();
                 const coursesRef = db.collection('courses');
-                // ابتدا بدون orderBy برای تست
-                // ولی بهتر است از orderBy استفاده کنیم، اما اگر فیلد نباشد خطا می‌دهد
-                // برای جلوگیری از خطا، از کوئری ساده استفاده می‌کنیم و بعد sort می‌کنیم
                 unsubscribeCourses = coursesRef.onSnapshot(snapshot => {
                     coursesData = [];
                     snapshot.forEach(doc => {
                         coursesData.push({ id: doc.id, ...doc.data() });
                     });
-                    // مرتب‌سازی دستی (چون ممکنه orderBy در snapshot مشکل داشته باشد)
                     coursesData.sort((a, b) => {
                         if (a.dayIndex !== b.dayIndex) return (a.dayIndex || 0) - (b.dayIndex || 0);
                         return (a.startTime || '').localeCompare(b.startTime || '');
@@ -767,19 +753,14 @@
                     updateCountdownsAndBell();
                 }, error => {
                     console.error('خطا در دریافت داده:', error);
-                    // اگر خطا به خاطر orderBy بود، می‌توانیم کوئری ساده‌تری امتحان کنیم
-                    // اما فعلاً همین کافی است
                 });
             }
 
-            // وضعیت احراز هویت
             auth.onAuthStateChanged(user => {
                 isLoggedIn = !!user;
                 updateLoginUI();
-                // نیازی به تغییر listener درس‌ها نیست چون یکسان است
             });
 
-            // ورود
             window.login = async function() {
                 const email = document.getElementById('email').value;
                 const pass = document.getElementById('password').value;
@@ -808,7 +789,6 @@
                     loginBtn.style.display = 'none';
                     logoutBtn.style.display = 'inline-block';
                     adminSection.classList.add('visible');
-                    // پر کردن فیلد زنگ با مقدار فعلی
                     document.getElementById('bellSoundUrl').value = bellSoundUrl;
                 } else {
                     emailInput.style.display = 'inline-block';
@@ -823,7 +803,6 @@
                 bellPlayed = new Array(coursesData.length).fill(false);
             }
 
-            // توابع کمکی
             function timeToMinutes(t) { if (!t) return 0; let p = t.split(':'); return parseInt(p[0])*60 + parseInt(p[1]); }
             function getDayName(d) { return ['شنبه','یک‌شنبه','دوشنبه','سه‌شنبه','چهارشنبه','پنج‌شنبه','جمعه'][d]; }
 
@@ -859,7 +838,6 @@
                 const grid = document.getElementById('cardGrid');
                 grid.innerHTML = '';
                 if (sorted.length === 0) {
-                    // نمایش پیام خالی بودن
                     grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:50px; background:#fff9e6; border-radius:60px; border:2px dashed #d4af37;">هیچ درسی یافت نشد. اولین درس را اضافه کنید.</div>';
                     return;
                 }
@@ -916,7 +894,7 @@
                                 <span><i class="fas fa-flask"></i> عملی ${(course.practical||0).toFixed(1)}</span>
                                 <span><i class="fas fa-layer-group"></i> کل ${(course.total||0).toFixed(1)}</span>
                             </div>
-                            <div class="info-row"><i class="fas fa-users-between-lines"></i> <span><strong>گروه ${course.group||'---'}</strong> - استاد: ${course.professor}</span></div>
+                            <div class="info-row"><i class="fas fa-users-between-lines"></i> <span><strong>گروه ${course.group || '---'}</strong> - استاد: ${course.professor}</span></div>
                             <div class="info-row"><i class="fas fa-building-columns"></i> <span>${course.location}</span></div>
                             ${course.isOnline && course.onlineLink ? `<div class="info-row"><i class="fas fa-link"></i> <span><a href="${course.onlineLink}" target="_blank">لینک جلسه</a></span></div>` : ''}
                             <div class="exam-simple">
@@ -1039,6 +1017,7 @@
                 document.getElementById('endTime').value = course.endTime || '10:00';
                 document.getElementById('professor').value = course.professor || '';
                 document.getElementById('location').value = course.location || '';
+                document.getElementById('courseGroup').value = course.group || '---';
                 document.getElementById('theoretical').value = course.theoretical || 0;
                 document.getElementById('practical').value = course.practical || 0;
                 document.getElementById('total').value = course.total || 0;
@@ -1067,6 +1046,7 @@
                 const endTime = document.getElementById('endTime').value;
                 const professor = document.getElementById('professor').value.trim() || 'نامشخص';
                 const location = document.getElementById('location').value.trim() || 'نامشخص';
+                const courseGroup = document.getElementById('courseGroup').value.trim() || '---';
                 const theoretical = parseFloat(document.getElementById('theoretical').value) || 0;
                 const practical = parseFloat(document.getElementById('practical').value) || 0;
                 const total = parseFloat(document.getElementById('total').value) || 0;
@@ -1078,7 +1058,7 @@
                 const courseData = {
                     name, code, dayIndex, startTime, endTime,
                     theoretical, practical, total,
-                    group: '---', professor, location,
+                    group: courseGroup, professor, location,
                     examDate: 'مشخص نشده', examTime: '', examDuration: 'مشخص نشده', examLocation: 'مشخص نشده',
                     isOnline, onlineLink
                 };
@@ -1104,6 +1084,7 @@
                 document.getElementById('endTime').value = '10:00';
                 document.getElementById('professor').value = '';
                 document.getElementById('location').value = '';
+                document.getElementById('courseGroup').value = '---';
                 document.getElementById('theoretical').value = '0.0';
                 document.getElementById('practical').value = '0.0';
                 document.getElementById('total').value = '0.0';
@@ -1125,7 +1106,6 @@
                 }
             }
 
-            // شروع به کار
             subscribeToSettings();
             subscribeToCourses();
             requestNotification();
