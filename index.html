@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>برنامه کلاسی هوشمند | تنظیم زنگ</title>
+    <title>برنامه کلاسی هوشمند | نسخه نهایی</title>
     <!-- فونت وزیر -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@latest/dist/font-face.css">
     <!-- فونت‌آیکن -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* استایل‌های قبلی (برای اختصار حذف نشده، اما می‌توانید از کد قبلی کپی کنید) */
+        /* استایل‌ها مانند قبل (برای اختصار حذف نشده، اما می‌توانید از کد قبلی کپی کنید) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Vazir', 'Tahoma', sans-serif;
@@ -508,7 +508,6 @@
         .btn-cancel:hover { background: #95a5a6; }
         .btn-save-sound:hover { background: #2ecc71; }
 
-        /* بخش تنظیمات زنگ */
         .sound-settings {
             margin-top: 30px;
             padding-top: 20px;
@@ -703,13 +702,14 @@
 
             // بارگذاری تنظیمات زنگ
             function subscribeToSettings() {
+                if (unsubscribeSettings) unsubscribeSettings();
                 const settingsRef = db.collection('settings').doc('general');
                 unsubscribeSettings = settingsRef.onSnapshot(doc => {
                     if (doc.exists) {
                         bellSoundUrl = doc.data().bellSoundUrl || bellSoundUrl;
                     } else {
                         // اگر سند نبود، ایجاد کن با مقدار پیش‌فرض
-                        settingsRef.set({ bellSoundUrl: bellSoundUrl });
+                        settingsRef.set({ bellSoundUrl: bellSoundUrl }).catch(e => console.error('خطا در ایجاد settings:', e));
                     }
                     // به‌روزرسانی فیلد input اگر ادمین لاگین است
                     if (isLoggedIn) {
@@ -744,18 +744,31 @@
 
             // بارگذاری لحظه‌ای درس‌ها
             function subscribeToCourses() {
-                if (unsubscribeCourses) unsubscribeCourses();
-                const q = db.collection('courses').orderBy('dayIndex').orderBy('startTime');
-                unsubscribeCourses = q.onSnapshot(snapshot => {
+                if (unsubscribeCourses) {
+                    unsubscribeCourses();
+                }
+                // ایجاد کوئری با orderBy
+                const coursesRef = db.collection('courses');
+                // ابتدا بدون orderBy برای تست
+                // ولی بهتر است از orderBy استفاده کنیم، اما اگر فیلد نباشد خطا می‌دهد
+                // برای جلوگیری از خطا، از کوئری ساده استفاده می‌کنیم و بعد sort می‌کنیم
+                unsubscribeCourses = coursesRef.onSnapshot(snapshot => {
                     coursesData = [];
                     snapshot.forEach(doc => {
                         coursesData.push({ id: doc.id, ...doc.data() });
+                    });
+                    // مرتب‌سازی دستی (چون ممکنه orderBy در snapshot مشکل داشته باشد)
+                    coursesData.sort((a, b) => {
+                        if (a.dayIndex !== b.dayIndex) return (a.dayIndex || 0) - (b.dayIndex || 0);
+                        return (a.startTime || '').localeCompare(b.startTime || '');
                     });
                     resetBellPlayed();
                     renderCards();
                     updateCountdownsAndBell();
                 }, error => {
                     console.error('خطا در دریافت داده:', error);
+                    // اگر خطا به خاطر orderBy بود، می‌توانیم کوئری ساده‌تری امتحان کنیم
+                    // اما فعلاً همین کافی است
                 });
             }
 
@@ -763,16 +776,7 @@
             auth.onAuthStateChanged(user => {
                 isLoggedIn = !!user;
                 updateLoginUI();
-                if (user) {
-                    subscribeToCourses();
-                    // وقتی ادمین وارد شد، فیلد لینک زنگ را با مقدار فعلی پر کن
-                    if (unsubscribeSettings) {
-                        // یک بار مقدار را واکشی کن (فعلاً با snapshot بعدی)
-                    }
-                } else {
-                    if (unsubscribeCourses) unsubscribeCourses();
-                    subscribeToCourses(); // حالت فقط خواندنی
-                }
+                // نیازی به تغییر listener درس‌ها نیست چون یکسان است
             });
 
             // ورود
@@ -804,6 +808,8 @@
                     loginBtn.style.display = 'none';
                     logoutBtn.style.display = 'inline-block';
                     adminSection.classList.add('visible');
+                    // پر کردن فیلد زنگ با مقدار فعلی
+                    document.getElementById('bellSoundUrl').value = bellSoundUrl;
                 } else {
                     emailInput.style.display = 'inline-block';
                     passwordInput.style.display = 'inline-block';
@@ -818,7 +824,7 @@
             }
 
             // توابع کمکی
-            function timeToMinutes(t) { let p = t.split(':'); return parseInt(p[0])*60 + parseInt(p[1]); }
+            function timeToMinutes(t) { if (!t) return 0; let p = t.split(':'); return parseInt(p[0])*60 + parseInt(p[1]); }
             function getDayName(d) { return ['شنبه','یک‌شنبه','دوشنبه','سه‌شنبه','چهارشنبه','پنج‌شنبه','جمعه'][d]; }
 
             function sortCoursesWithPinned(tehranNow, currentDay, currentMinutes) {
@@ -827,7 +833,7 @@
                     const bPinned = isPinned(b, currentDay, currentMinutes);
                     if (aPinned && !bPinned) return -1;
                     if (!aPinned && bPinned) return 1;
-                    if (a.dayIndex !== b.dayIndex) return a.dayIndex - b.dayIndex;
+                    if (a.dayIndex !== b.dayIndex) return (a.dayIndex || 0) - (b.dayIndex || 0);
                     return timeToMinutes(a.startTime) - timeToMinutes(b.startTime);
                 });
             }
@@ -852,9 +858,14 @@
 
                 const grid = document.getElementById('cardGrid');
                 grid.innerHTML = '';
+                if (sorted.length === 0) {
+                    // نمایش پیام خالی بودن
+                    grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:50px; background:#fff9e6; border-radius:60px; border:2px dashed #d4af37;">هیچ درسی یافت نشد. اولین درس را اضافه کنید.</div>';
+                    return;
+                }
                 sorted.forEach((course) => {
-                    const startH = parseInt(course.startTime.split(':')[0]);
-                    const startM = parseInt(course.startTime.split(':')[1]);
+                    const startH = parseInt(course.startTime?.split(':')[0] || 0);
+                    const startM = parseInt(course.startTime?.split(':')[1] || 0);
 
                     const card = document.createElement('div');
                     card.className = 'course-card';
@@ -949,8 +960,8 @@
                     const cardDay = course.dayIndex;
                     const startHour = parseInt(card.getAttribute('data-start-hour'));
                     const startMin = parseInt(card.getAttribute('data-start-min'));
-                    const endHour = parseInt(course.endTime.split(':')[0]);
-                    const endMin = parseInt(course.endTime.split(':')[1]);
+                    const endHour = parseInt(course.endTime?.split(':')[0] || 0);
+                    const endMin = parseInt(course.endTime?.split(':')[1] || 0);
                     const startTotal = startHour*60 + startMin;
                     const endTotal = endHour*60 + endMin;
 
@@ -1021,11 +1032,11 @@
                 const course = coursesData.find(c => c.id === id);
                 if (!course) return;
                 document.getElementById('editId').value = id;
-                document.getElementById('courseName').value = course.name;
-                document.getElementById('courseCode').value = course.code;
-                document.getElementById('courseDay').value = course.dayIndex;
-                document.getElementById('startTime').value = course.startTime;
-                document.getElementById('endTime').value = course.endTime;
+                document.getElementById('courseName').value = course.name || '';
+                document.getElementById('courseCode').value = course.code || '';
+                document.getElementById('courseDay').value = course.dayIndex || 0;
+                document.getElementById('startTime').value = course.startTime || '08:00';
+                document.getElementById('endTime').value = course.endTime || '10:00';
                 document.getElementById('professor').value = course.professor || '';
                 document.getElementById('location').value = course.location || '';
                 document.getElementById('theoretical').value = course.theoretical || 0;
@@ -1040,7 +1051,11 @@
 
             window.deleteCourse = async function(id) {
                 if (confirm('آیا از حذف این درس اطمینان دارید؟')) {
-                    await db.collection('courses').doc(id).delete();
+                    try {
+                        await db.collection('courses').doc(id).delete();
+                    } catch (error) {
+                        alert('خطا در حذف: ' + error.message);
+                    }
                 }
             };
 
@@ -1111,8 +1126,8 @@
             }
 
             // شروع به کار
-            subscribeToSettings(); // تنظیمات زنگ
-            subscribeToCourses();  // درس‌ها
+            subscribeToSettings();
+            subscribeToCourses();
             requestNotification();
             setInterval(updateCountdownsAndBell, 1000);
         })();
