@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>برنامه کلاسی هوشمند | نسخه نهایی با گروه درسی</title>
+    <title>برنامه کلاسی هوشمند | نسخه نهایی با صدا</title>
     <!-- فونت وزیر -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@latest/dist/font-face.css">
     <!-- فونت‌آیکن -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* همان استایل‌های قبلی (برای اختصار حذف نشده) */
+        /* استایل‌های قبلی (برای اختصار حذف نشده) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Vazir', 'Tahoma', sans-serif;
@@ -630,7 +630,7 @@
                 <div class="form-group"><label><i class="fas fa-chalkboard-teacher"></i> استاد</label><input type="text" id="professor" placeholder="نام استاد"></div>
                 <div class="form-group"><label><i class="fas fa-map-marker-alt"></i> مکان</label><input type="text" id="location" placeholder="دانشکده"></div>
                 
-                <!-- فیلد گروه درسی (اضافه شده) -->
+                <!-- فیلد گروه درسی -->
                 <div class="form-group"><label><i class="fas fa-users-between-lines"></i> گروه درسی</label><input type="text" id="courseGroup" placeholder="مثال: ۱۱۱۴" value="---"></div>
                 
                 <!-- فیلدهای واحد -->
@@ -652,15 +652,15 @@
                 </div>
             </div>
 
-            <!-- بخش تنظیمات زنگ (فقط برای ادمین) -->
+            <!-- بخش تنظیمات زنگ -->
             <div class="sound-settings">
                 <h4 style="color: #1a1a1a; margin-bottom: 15px;"><i class="fas fa-music"></i> تنظیم صدای زنگ</h4>
                 <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-                    <input type="url" id="bellSoundUrl" placeholder="لینک فایل صوتی (MP3)" style="flex: 1; min-width: 250px; padding: 10px; border-radius: 40px; border: 2px solid #d4af37;">
+                    <input type="url" id="bellSoundUrl" placeholder="لینک فایل صوتی (MP3)" style="flex: 1; min-width: 250px; padding: 10px; border-radius: 40px; border: 2px solid #d4af37;" value="https://bigsoundbank.com/UPLOAD/mp3/1500.mp3">
                     <button class="btn-save-sound" onclick="saveBellSound()"><i class="fas fa-save"></i> ذخیره زنگ</button>
                     <button class="btn-cancel" onclick="playTestBell()"><i class="fas fa-play"></i> تست زنگ</button>
                 </div>
-                <p style="margin-top: 10px; font-size: 0.9rem; color: #666;">مثال: https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3</p>
+                <p style="margin-top: 10px; font-size: 0.9rem; color: #666;">اگر صدا پخش نشد، روی "تست زنگ" کلیک کنید و سپس اجازه دهید مرورگر صدا را پخش کند.</p>
             </div>
         </div>
 
@@ -700,7 +700,8 @@
             let unsubscribeSettings = null;
 
             const bellSound = document.getElementById('bellSound');
-            let bellSoundUrl = "https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3";
+            // لینک پیش‌فرض جدید (معتبرتر)
+            let bellSoundUrl = "https://bigsoundbank.com/UPLOAD/mp3/1500.mp3";
 
             function subscribeToSettings() {
                 if (unsubscribeSettings) unsubscribeSettings();
@@ -733,7 +734,11 @@
             window.playTestBell = function() {
                 const testUrl = document.getElementById('bellSoundUrl').value.trim() || bellSoundUrl;
                 const audio = new Audio(testUrl);
-                audio.play().catch(e => alert('پخش صدا ممکن نیست: ' + e.message));
+                audio.play().then(() => {
+                    console.log('صدای تست پخش شد');
+                }).catch(e => {
+                    alert('پخش صدا ممکن نیست. لطفاً روی صفحه کلیک کنید و دوباره تست کنید.\nخطا: ' + e.message);
+                });
             };
 
             function subscribeToCourses() {
@@ -1002,7 +1007,15 @@
                 if (bellSound) {
                     bellSound.src = bellSoundUrl;
                     bellSound.currentTime = 0;
-                    bellSound.play().catch(e => console.log('پخش صدا ممکن نیست', e));
+                    bellSound.play().catch(e => {
+                        console.log('پخش خودکار صدا ممکن نیست. لطفاً با کلیک روی دکمه تست صدا را فعال کنید.', e);
+                        // می‌توانیم یک پیام ملایم به کاربر نشان دهیم
+                        if (!window.soundWarningShown) {
+                            window.soundWarningShown = true;
+                            // یک بار هشدار می‌دهیم
+                            alert('برای شنیدن صدای زنگ کلاس، لطفاً روی دکمه "تست زنگ" کلیک کنید تا مرورگر اجازه پخش صدا را بدهد.');
+                        }
+                    });
                 }
             }
 
@@ -1106,6 +1119,7 @@
                 }
             }
 
+            // شروع به کار
             subscribeToSettings();
             subscribeToCourses();
             requestNotification();
