@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>برنامه کلاسی هوشمند | نسخه نهایی با صدا</title>
+    <title>برنامه کلاسی هوشمند | Supabase</title>
     <!-- فونت وزیر -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@latest/dist/font-face.css">
     <!-- فونت‌آیکن -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* استایل‌های قبلی (برای اختصار حذف نشده) */
+        /* همان استایل‌های قبلی - برای اختصار حذف نشده است */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Vazir', 'Tahoma', sans-serif;
@@ -576,10 +576,8 @@
             .login-simple { justify-content: center; }
         }
     </style>
-    <!-- Firebase SDK (compat) -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <!-- Supabase JS SDK (CDN) [citation:2] -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <div class="container">
@@ -678,19 +676,17 @@
 
     <script>
         (function() {
-            const firebaseConfig = {
-                apiKey: "AIzaSyAtU9XMjr-0DM7A3-CWHkOxHrCJ5JOL3OA",
-                authDomain: "aemola.firebaseapp.com",
-                projectId: "aemola",
-                storageBucket: "aemola.firebasestorage.app",
-                messagingSenderId: "528174826911",
-                appId: "1:528174826911:web:da839401e904fc3ddd69aa",
-                measurementId: "G-MLCYQJTVWY"
-            };
-
-            firebase.initializeApp(firebaseConfig);
-            const db = firebase.firestore();
-            const auth = firebase.auth();
+            // 🔧 تنظیمات Supabase (مقادیر را از پروژه خودت جایگزین کن) [citation:5]
+            const supabaseUrl = 'https://kssamzssqvkmsdgljlem.supabase.co';
+            const supabaseAnonKey = 'sb_publishable_-XVb7eOpQzabcePWvfc9NA_x0fXhFSf';
+            
+            // ایجاد کلاینت Supabase [citation:2]
+            const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey, {
+                auth: {
+                    persistSession: true,
+                    autoRefreshToken: true,
+                }
+            });
 
             const TEHRAN_OFFSET = 3.5 * 60 * 60 * 1000;
             let coursesData = [];
@@ -700,32 +696,42 @@
             let unsubscribeSettings = null;
 
             const bellSound = document.getElementById('bellSound');
-            // لینک پیش‌فرض جدید (معتبرتر)
             let bellSoundUrl = "https://bigsoundbank.com/UPLOAD/mp3/1500.mp3";
 
-            function subscribeToSettings() {
-                if (unsubscribeSettings) unsubscribeSettings();
-                const settingsRef = db.collection('settings').doc('general');
-                unsubscribeSettings = settingsRef.onSnapshot(doc => {
-                    if (doc.exists) {
-                        bellSoundUrl = doc.data().bellSoundUrl || bellSoundUrl;
-                    } else {
-                        settingsRef.set({ bellSoundUrl: bellSoundUrl }).catch(e => console.error('خطا در ایجاد settings:', e));
-                    }
-                    if (isLoggedIn) {
-                        document.getElementById('bellSoundUrl').value = bellSoundUrl;
-                    }
-                }, error => {
-                    console.error('خطا در دریافت تنظیمات:', error);
-                });
+            // ========== توابع تنظیمات زنگ ==========
+            async function subscribeToSettings() {
+                if (unsubscribeSettings) {
+                    unsubscribeSettings();
+                }
+                
+                // گوش دادن به تغییرات تنظیمات
+                const { data, error } = await supabase
+                    .from('settings')
+                    .select('*')
+                    .eq('id', 'general')
+                    .single();
+                
+                if (data) {
+                    bellSoundUrl = data.bellSoundUrl || bellSoundUrl;
+                }
+                
+                if (isLoggedIn) {
+                    document.getElementById('bellSoundUrl').value = bellSoundUrl;
+                }
             }
 
             window.saveBellSound = async function() {
                 const newUrl = document.getElementById('bellSoundUrl').value.trim();
                 if (!newUrl) { alert('لطفاً لینک را وارد کنید'); return; }
+                
                 try {
-                    await db.collection('settings').doc('general').set({ bellSoundUrl: newUrl });
+                    const { error } = await supabase
+                        .from('settings')
+                        .upsert({ id: 'general', bellSoundUrl: newUrl });
+                    
+                    if (error) throw error;
                     alert('تنظیمات زنگ ذخیره شد');
+                    bellSoundUrl = newUrl;
                 } catch (error) {
                     alert('خطا در ذخیره: ' + error.message);
                 }
@@ -734,52 +740,93 @@
             window.playTestBell = function() {
                 const testUrl = document.getElementById('bellSoundUrl').value.trim() || bellSoundUrl;
                 const audio = new Audio(testUrl);
-                audio.play().then(() => {
-                    console.log('صدای تست پخش شد');
-                }).catch(e => {
+                audio.play().catch(e => {
                     alert('پخش صدا ممکن نیست. لطفاً روی صفحه کلیک کنید و دوباره تست کنید.\nخطا: ' + e.message);
                 });
             };
 
-            function subscribeToCourses() {
-                if (unsubscribeCourses) unsubscribeCourses();
-                const coursesRef = db.collection('courses');
-                unsubscribeCourses = coursesRef.onSnapshot(snapshot => {
-                    coursesData = [];
-                    snapshot.forEach(doc => {
-                        coursesData.push({ id: doc.id, ...doc.data() });
-                    });
-                    coursesData.sort((a, b) => {
-                        if (a.dayIndex !== b.dayIndex) return (a.dayIndex || 0) - (b.dayIndex || 0);
-                        return (a.startTime || '').localeCompare(b.startTime || '');
-                    });
-                    resetBellPlayed();
-                    renderCards();
-                    updateCountdownsAndBell();
-                }, error => {
-                    console.error('خطا در دریافت داده:', error);
-                });
+            // ========== توابع درس‌ها ==========
+            async function subscribeToCourses() {
+                // بارگذاری اولیه درس‌ها
+                await loadCourses();
+                
+                // گوش دادن به تغییرات real-time (اختیاری)
+                const subscription = supabase
+                    .channel('courses-changes')
+                    .on('postgres_changes', 
+                        { event: '*', schema: 'public', table: 'courses' },
+                        async (payload) => {
+                            console.log('تغییر در دیتابیس:', payload);
+                            await loadCourses(); // بارگذاری مجدد
+                        }
+                    )
+                    .subscribe();
+                
+                unsubscribeCourses = () => subscription.unsubscribe();
             }
 
-            auth.onAuthStateChanged(user => {
-                isLoggedIn = !!user;
-                updateLoginUI();
-            });
+            async function loadCourses() {
+                const { data, error } = await supabase
+                    .from('courses')
+                    .select('*')
+                    .order('dayIndex', { ascending: true })
+                    .order('startTime', { ascending: true });
+                
+                if (error) {
+                    console.error('خطا در دریافت درس‌ها:', error);
+                    return;
+                }
+                
+                coursesData = data || [];
+                resetBellPlayed();
+                renderCards();
+                updateCountdownsAndBell();
+            }
 
+            // ========== توابع احراز هویت ==========
             window.login = async function() {
                 const email = document.getElementById('email').value;
                 const pass = document.getElementById('password').value;
+                
                 try {
-                    await auth.signInWithEmailAndPassword(email, pass);
+                    const { data, error } = await supabase.auth.signInWithPassword({
+                        email: email,
+                        password: pass,
+                    });
+                    
+                    if (error) throw error;
+                    
+                    isLoggedIn = true;
+                    updateLoginUI();
+                    await loadCourses(); // بارگذاری مجدد برای نمایش دکمه‌های ویرایش
                 } catch (error) {
                     alert('خطا در ورود: ' + error.message);
                 }
             };
 
-            window.logout = function() {
-                auth.signOut();
+            window.logout = async function() {
+                await supabase.auth.signOut();
+                isLoggedIn = false;
+                updateLoginUI();
                 cancelEdit();
+                await loadCourses(); // بارگذاری مجدد (بدون دکمه‌های ویرایش)
             };
+
+            // بررسی وضعیت احراز هویت در شروع
+            async function checkAuthState() {
+                const { data: { user } } = await supabase.auth.getUser();
+                isLoggedIn = !!user;
+                updateLoginUI();
+            }
+
+            // گوش دادن به تغییرات وضعیت احراز هویت
+            supabase.auth.onAuthStateChange((event, session) => {
+                isLoggedIn = !!session?.user;
+                updateLoginUI();
+                if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+                    loadCourses(); // بارگذاری مجدد
+                }
+            });
 
             function updateLoginUI() {
                 const emailInput = document.getElementById('email');
@@ -804,6 +851,7 @@
                 }
             }
 
+            // ========== توابع کمکی ==========
             function resetBellPlayed() {
                 bellPlayed = new Array(coursesData.length).fill(false);
             }
@@ -899,7 +947,7 @@
                                 <span><i class="fas fa-flask"></i> عملی ${(course.practical||0).toFixed(1)}</span>
                                 <span><i class="fas fa-layer-group"></i> کل ${(course.total||0).toFixed(1)}</span>
                             </div>
-                            <div class="info-row"><i class="fas fa-users-between-lines"></i> <span><strong>گروه ${course.group || '---'}</strong> - استاد: ${course.professor}</span></div>
+                            <div class="info-row"><i class="fas fa-users-between-lines"></i> <span><strong>گروه ${course.group_name || '---'}</strong> - استاد: ${course.professor}</span></div>
                             <div class="info-row"><i class="fas fa-building-columns"></i> <span>${course.location}</span></div>
                             ${course.isOnline && course.onlineLink ? `<div class="info-row"><i class="fas fa-link"></i> <span><a href="${course.onlineLink}" target="_blank">لینک جلسه</a></span></div>` : ''}
                             <div class="exam-simple">
@@ -937,7 +985,7 @@
 
                 cards.forEach(card => {
                     const courseId = card.getAttribute('data-id');
-                    const course = coursesData.find(c => c.id === courseId);
+                    const course = coursesData.find(c => c.id == courseId);
                     if (!course) return;
 
                     const cardDay = course.dayIndex;
@@ -985,7 +1033,7 @@
                     const countSpan = card.querySelector('.countdown-area span');
                     if (countSpan) countSpan.innerText = displayText;
 
-                    const index = coursesData.findIndex(c => c.id === courseId);
+                    const index = coursesData.findIndex(c => c.id == courseId);
                     if (index !== -1) {
                         if (isNowOngoing && !bellPlayed[index]) {
                             playBell();
@@ -1008,19 +1056,17 @@
                     bellSound.src = bellSoundUrl;
                     bellSound.currentTime = 0;
                     bellSound.play().catch(e => {
-                        console.log('پخش خودکار صدا ممکن نیست. لطفاً با کلیک روی دکمه تست صدا را فعال کنید.', e);
-                        // می‌توانیم یک پیام ملایم به کاربر نشان دهیم
+                        console.log('پخش خودکار صدا ممکن نیست', e);
                         if (!window.soundWarningShown) {
                             window.soundWarningShown = true;
-                            // یک بار هشدار می‌دهیم
-                            alert('برای شنیدن صدای زنگ کلاس، لطفاً روی دکمه "تست زنگ" کلیک کنید تا مرورگر اجازه پخش صدا را بدهد.');
+                            alert('برای شنیدن صدای زنگ کلاس، لطفاً روی دکمه "تست زنگ" کلیک کنید.');
                         }
                     });
                 }
             }
 
             window.editCourse = function(id) {
-                const course = coursesData.find(c => c.id === id);
+                const course = coursesData.find(c => c.id == id);
                 if (!course) return;
                 document.getElementById('editId').value = id;
                 document.getElementById('courseName').value = course.name || '';
@@ -1030,7 +1076,7 @@
                 document.getElementById('endTime').value = course.endTime || '10:00';
                 document.getElementById('professor').value = course.professor || '';
                 document.getElementById('location').value = course.location || '';
-                document.getElementById('courseGroup').value = course.group || '---';
+                document.getElementById('courseGroup').value = course.group_name || '---';
                 document.getElementById('theoretical').value = course.theoretical || 0;
                 document.getElementById('practical').value = course.practical || 0;
                 document.getElementById('total').value = course.total || 0;
@@ -1044,7 +1090,13 @@
             window.deleteCourse = async function(id) {
                 if (confirm('آیا از حذف این درس اطمینان دارید؟')) {
                     try {
-                        await db.collection('courses').doc(id).delete();
+                        const { error } = await supabase
+                            .from('courses')
+                            .delete()
+                            .eq('id', id);
+                        
+                        if (error) throw error;
+                        await loadCourses(); // بارگذاری مجدد
                     } catch (error) {
                         alert('خطا در حذف: ' + error.message);
                     }
@@ -1071,7 +1123,7 @@
                 const courseData = {
                     name, code, dayIndex, startTime, endTime,
                     theoretical, practical, total,
-                    group: courseGroup, professor, location,
+                    group_name: courseGroup, professor, location,
                     examDate: 'مشخص نشده', examTime: '', examDuration: 'مشخص نشده', examLocation: 'مشخص نشده',
                     isOnline, onlineLink
                 };
@@ -1079,11 +1131,19 @@
                 const editId = document.getElementById('editId').value;
                 try {
                     if (editId) {
-                        await db.collection('courses').doc(editId).update(courseData);
+                        const { error } = await supabase
+                            .from('courses')
+                            .update(courseData)
+                            .eq('id', editId);
+                        if (error) throw error;
                     } else {
-                        await db.collection('courses').add(courseData);
+                        const { error } = await supabase
+                            .from('courses')
+                            .insert([courseData]);
+                        if (error) throw error;
                     }
                     cancelEdit();
+                    await loadCourses(); // بارگذاری مجدد
                 } catch (error) {
                     alert('خطا در ذخیره: ' + error.message);
                 }
@@ -1120,10 +1180,12 @@
             }
 
             // شروع به کار
-            subscribeToSettings();
-            subscribeToCourses();
-            requestNotification();
-            setInterval(updateCountdownsAndBell, 1000);
+            checkAuthState().then(() => {
+                subscribeToSettings();
+                loadCourses();
+                requestNotification();
+                setInterval(updateCountdownsAndBell, 1000);
+            });
         })();
     </script>
 </body>
