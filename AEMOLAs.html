@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>برنامه کلاسی هوشمند | زنگ هشدار | محمد مهدی مولایاری</title>
+    <!-- فونت وزیر -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@latest/dist/font-face.css">
+    <!-- فونت‌آیکن -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Vazir', 'Tahoma', sans-serif;
+            background: linear-gradient(145deg, #f4f4f4 0%, #ffffff 100%);
+            color: #1e1e1e;
+            line-height: 1.5;
+            padding: 16px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .container { max-width: 1400px; margin: 0 auto; width: 100%; flex: 1; }
+
+        /* ===== هدر ===== */
+        .header {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+            color: #d4af37;
+            padding: 2rem 1.2rem;
+            border-radius: 48px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.4), inset 0 1px 3px rgba(255, 215, 0, 0.3);
+            border-bottom: 4px solid #d4af37;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            text-shadow: 3px 3px 0 #00000040;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .header h1 i { color: #f0e68c; font-size: 2rem; }
+        .header p {
+            font-size: 1rem;
+            color: #f0e68c;
+            border-top: 2px dashed #d4af37;
+            border-bottom: 2px dashed #d4af37;
+            display: inline-block;
+            padding: 0.4rem 1.5rem;
+            background-color: rgba(0, 0, 0, 0.4);
+            border-radius: 40px;
+        }
+
+        /* ===== پنل بالایی (تاریخ/ساعت + لاگین ساده) ===== */
+        .top-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .datetime-panel {
+            background: linear-gradient(145deg, #fff9e6, #fff2d7);
+            border: 3px solid #d4af37;
+            border-radius: 60px;
+            padding: 0.8rem 1.5rem;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            box-shadow: 0 8px 0 #b8860b;
+            flex: 2;
+            min-width: 280px;
+        }
+        .date-box, .time-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            background: #1a1a1a;
+            color: #d4af37;
+            padding: 0.5rem 1.5rem;
+            border-radius: 40px;
+            border: 2px solid #f0e68c;
+        }
+        .date-box i, .time-box i { color: #f0e68c; }
+        .notification-badge {
+            background-color: #d4af37;
+            color: #1a1a1a;
+            padding: 0.5rem 1.5rem;
+            border-radius: 40px;
+            font-weight: 800;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 0 #8b691f;
+        }
+
+        /* ===== لاگین ساده (غیرکشویی، کم‌حجم) ===== */
+        .login-simple {
+            background: #1a1a1a;
+            border: 2px solid #d4af37;
+            border-radius: 50px;
+            padding: 0.3rem 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 0 #8b691f;
+        }
+        .login-simple input {
+            background: #333;
+            border: 1px solid #d4af37;
+            border-radius: 40px;
+            padding: 0.4rem 0.8rem;
+            color: white;
+            width: 90px;
+            font-family: 'Vazir', sans-serif;
+            font-size: 0.85rem;
+        }
+        .login-simple input::placeholder { color: #aaa; }
+        .login-simple button {
+            background: #d4af37;
+            border: none;
+            border-radius: 40px;
+            padding: 0.4rem 1rem;
+            font-weight: 700;
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+        .login-simple .logout-btn {
+            background: transparent;
+            border: 2px solid #d4af37;
+            color: #d4af37;
+            padding: 0.4rem 1rem;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.8rem;
+        }
+
+        /* ===== راهنمای کلیک ===== */
+        .instruction {
+            text-align: center;
+            margin-bottom: 24px;
+            color: #2a2a2a;
+            background: #ffffffcc;
+            backdrop-filter: blur(10px);
+            padding: 0.8rem 1.2rem;
+            border-radius: 60px;
+            border: 2px solid #d4af37;
+            font-weight: 600;
+            font-size: 1rem;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .instruction i { color: #b8860b; font-size: 1.3rem; animation: bounce 1.5s infinite; }
+        @keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+
+        /* ===== گرید کارت‌ها ===== */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 22px;
+        }
+
+        /* ===== کارت درس ===== */
+        .course-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border-radius: 36px;
+            box-shadow: 0 15px 35px -8px rgba(0, 0, 0, 0.2), 0 0 0 1px #d4af37 inset;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            border: none;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            user-select: none;
+            height: fit-content;
+            transform: translateZ(0);
+            position: relative;
+        }
+        .course-card:hover {
+            transform: translateY(-6px) scale(1.02);
+            box-shadow: 0 25px 45px -10px rgba(0, 0, 0, 0.3), 0 0 0 2px #d4af37 inset;
+        }
+        .admin-controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            display: flex;
+            gap: 8px;
+            z-index: 10;
+        }
+        .edit-btn, .delete-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: 0.2s;
+            border: 2px solid #d4af37;
+        }
+        .edit-btn { background: #d4af37; color: #1a1a1a; }
+        .delete-btn { background: rgba(0, 0, 0, 0.7); color: #ff4444; }
+        .edit-btn:hover { background: #b8860b; color: white; }
+        .delete-btn:hover { background: #ff4444; color: white; }
+
+        .online-badge {
+            background: #27ae60;
+            color: white;
+            padding: 0.2rem 1rem;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-top: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .online-link {
+            margin-top: 8px;
+            font-size: 0.9rem;
+        }
+        .online-link a {
+            color: #27ae60;
+            text-decoration: none;
+            background: rgba(39, 174, 96, 0.2);
+            padding: 0.2rem 1rem;
+            border-radius: 40px;
+            border: 1px solid #27ae60;
+        }
+
+        .course-card.today-highlight {
+            box-shadow: 0 0 0 4px #ffd966, 0 20px 40px -8px #f1c40f, 0 0 0 2px #b8860b inset;
+            background: rgba(255, 248, 225, 0.9);
+            backdrop-filter: blur(12px);
+            transform: scale(1.02);
+        }
+        .course-card.today-highlight .day-time-badge {
+            background: linear-gradient(145deg, #d4af37, #b8860b);
+            color: #1a1a1a;
+            border-color: #fffacd;
+        }
+        .course-card.today-highlight .day-time-badge i { color: #1a1a1a; }
+        .course-card.today-highlight .summary-course-name {
+            background: linear-gradient(145deg, #f7eac6, #f5d76e);
+            border-color: #d4af37;
+        }
+
+        .card-summary {
+            padding: 1.8rem 1rem 1.2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            background: transparent;
+            border-radius: 36px 36px 0 0;
+        }
+        .day-time-badge {
+            background: linear-gradient(145deg, #1a1a1a, #2d2d2d);
+            color: #d4af37;
+            padding: 0.7rem 1.2rem;
+            border-radius: 50px;
+            font-weight: 800;
+            font-size: 1.2rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 1rem;
+            border: 2px solid #d4af37;
+            width: 100%;
+            justify-content: center;
+            box-shadow: 0 5px 0 #8b691f;
+        }
+        .day-time-badge i { color: #f0e68c; font-size: 1.3rem; filter: drop-shadow(0 2px 2px black); }
+        .summary-course-name {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #1e1e1e;
+            background: linear-gradient(145deg, #f7eac6, #f5e1a6);
+            padding: 0.5rem 1.5rem;
+            border-radius: 60px;
+            display: inline-block;
+            border: 2px solid #b8860b;
+            word-break: break-word;
+            max-width: 100%;
+            box-shadow: 0 4px 0 #a57c1e;
+            line-height: 1.4;
+        }
+        .countdown-area {
+            margin-top: 12px;
+            width: 100%;
+            font-size: 0.9rem;
+            font-weight: 600;
+            background: rgba(212, 175, 55, 0.15);
+            padding: 0.4rem 0.8rem;
+            border-radius: 40px;
+            border: 1px solid #d4af37;
+            color: #1e1e1e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            backdrop-filter: blur(4px);
+        }
+        .expand-icon {
+            margin-top: 15px;
+            color: #b8860b;
+            font-size: 1.4rem;
+            transition: transform 0.4s;
+            background-color: rgba(212, 175, 55, 0.15);
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+        .course-card.expanded .expand-icon i { transform: rotate(180deg); }
+
+        .card-details {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out, opacity 0.4s ease-in-out, padding 0.4s;
+            background: transparent;
+            border-radius: 0 0 36px 36px;
+            border-top: 0 solid #d4af37;
+        }
+        .course-card.expanded .card-details {
+            max-height: 900px;
+            opacity: 1;
+            padding: 1.2rem 1.2rem 1.8rem 1.2rem;
+            border-top-width: 3px;
+        }
+
+        .details-content { color: #1e1e1e; }
+        .course-code {
+            background: #1e1e1e;
+            color: #d4af37;
+            padding: 0.4rem 1.2rem;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 1rem;
+            border: 1px solid #d4af37;
+        }
+        .units-mini {
+            display: flex;
+            gap: 12px;
+            background: #faf3dd;
+            padding: 0.6rem 1.2rem;
+            border-radius: 40px;
+            width: fit-content;
+            margin-bottom: 1rem;
+            border: 2px solid #d4af37;
+            font-size: 0.95rem;
+            flex-wrap: wrap;
+        }
+        .units-mini span { display: flex; align-items: center; gap: 6px; }
+        .units-mini i { color: #b8860b; }
+        .info-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+            background: rgba(248, 244, 236, 0.8);
+            backdrop-filter: blur(4px);
+            padding: 0.7rem 1rem;
+            border-radius: 40px;
+            border-right: 6px solid #d4af37;
+        }
+        .info-row i { width: 24px; color: #b8860b; font-size: 1.1rem; }
+        .exam-simple {
+            margin-top: 1rem;
+            background: linear-gradient(145deg, #1e1e1e, #2a2a2a);
+            color: #fff;
+            padding: 1rem 1.2rem;
+            border-radius: 30px;
+            border: 2px solid #d4af37;
+            box-shadow: 0 8px 0 #8b691f;
+        }
+        .exam-simple .exam-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #d4af37;
+            font-weight: 800;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+        .exam-detail-item {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+            margin-right: 6px;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+        .exam-detail-item i { width: 20px; color: #d4af37; }
+        .exam-date-badge {
+            background-color: #d4af37;
+            color: #1e1e1e;
+            padding: 0.2rem 0.9rem;
+            border-radius: 30px;
+            font-weight: 800;
+            font-size: 0.8rem;
+            display: inline-block;
+            margin-left: 8px;
+            border: 1px solid white;
+        }
+        .card-footer {
+            height: 8px;
+            background: linear-gradient(90deg, #b8860b, #f0e68c, #b8860b);
+            border-radius: 0 0 36px 36px;
+        }
+
+        /* ===== فرم افزودن/ویرایش درس ===== */
+        .add-course-section {
+            margin: 40px 0 20px;
+            background: linear-gradient(145deg, #fff9e6, #fff2d7);
+            border: 3px solid #d4af37;
+            border-radius: 60px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 0 #b8860b;
+            display: none;
+        }
+        .add-course-section.visible { display: block; }
+        .add-course-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            align-items: end;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .form-group label {
+            font-weight: 700;
+            color: #1a1a1a;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            padding: 10px 15px;
+            border-radius: 40px;
+            border: 2px solid #d4af37;
+            background: white;
+            font-family: 'Vazir', sans-serif;
+            font-size: 0.9rem;
+        }
+        .checkbox-group {
+            flex-direction: row;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-add, .btn-cancel {
+            padding: 10px 25px;
+            border-radius: 40px;
+            font-weight: 800;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            height: fit-content;
+            border: 2px solid #d4af37;
+        }
+        .btn-add { background: #1a1a1a; color: #d4af37; }
+        .btn-cancel { background: #7f8c8d; color: white; border-color: #95a5a6; }
+        .btn-add:hover { background: #d4af37; color: #1a1a1a; }
+        .btn-cancel:hover { background: #95a5a6; }
+
+        /* ===== فوتر امضا ===== */
+        .designer-footer {
+            margin-top: 50px;
+            text-align: center;
+            background: linear-gradient(145deg, #1a1a1a, #252525);
+            padding: 1.5rem 1.5rem;
+            border-radius: 60px 60px 30px 30px;
+            border: 3px solid #d4af37;
+            box-shadow: 0 -5px 0 #b8860b;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .designer-footer p {
+            color: #d4af37;
+            font-size: 1.2rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .designer-footer i { color: #f0e68c; font-size: 1.6rem; filter: drop-shadow(0 2px 2px black); }
+        .designer-footer .name {
+            background-color: #d4af37;
+            color: #1a1a1a;
+            padding: 0.3rem 1.2rem;
+            border-radius: 40px;
+            font-weight: 800;
+            font-size: 1.2rem;
+        }
+        .contact-info {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 2px dashed #d4af37;
+        }
+        .contact-info a {
+            color: #f0e68c;
+            text-decoration: none;
+            font-size: 1.1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.1);
+            padding: 0.4rem 1.2rem;
+            border-radius: 40px;
+            transition: 0.2s;
+            border: 1px solid #d4af37;
+        }
+        .contact-info a:hover { background: #d4af37; color: #1a1a1a; }
+
+        @media (max-width: 700px) {
+            .top-panel { flex-direction: column; align-items: stretch; }
+            .login-simple { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-calendar-check"></i> برنامه کلاسی هوشمند <i class="fas fa-map-pin"></i></h1>
+            <p>تهران | پین خودکار و زنگ هشدار</p>
+        </div>
+
+        <div class="top-panel">
+            <div class="datetime-panel">
+                <div class="date-box" id="dateDisplay"><i class="fas fa-calendar-alt"></i> <span>در حال بارگذاری...</span></div>
+                <div class="time-box" id="timeDisplay"><i class="fas fa-clock"></i> <span>--:--:--</span></div>
+                <div class="notification-badge" id="notificationBadge"><i class="fas fa-bell"></i> <span id="notifText">بررسی کلاس‌ها...</span></div>
+            </div>
+
+            <!-- لاگین ساده (غیرکشویی، کم حجم) -->
+            <div class="login-simple" id="loginContainer">
+                <input type="text" id="username" placeholder="نام کاربری" value="">
+                <input type="password" id="password" placeholder="رمز">
+                <button onclick="login()"><i class="fas fa-sign-in-alt"></i> ورود</button>
+                <button class="logout-btn" id="logoutBtn" onclick="logout()" style="display:none;"><i class="fas fa-sign-out-alt"></i> خروج</button>
+            </div>
+        </div>
+
+        <div class="instruction">
+            <i class="fas fa-hand-pointer"></i> روی هر کارت کلیک کنید تا جزئیات کامل درس باز شود <i class="fas fa-chevron-down"></i>
+        </div>
+
+        <div class="card-grid" id="cardGrid"></div>
+
+        <div class="add-course-section" id="adminSection">
+            <h3 style="color: #1a1a1a; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-plus-circle" style="color: #b8860b;"></i> <span id="formTitle">افزودن درس جدید</span>
+            </h3>
+            <div class="add-course-form" id="courseForm">
+                <input type="hidden" id="editIndex" value="-1">
+                <div class="form-group"><label><i class="fas fa-book"></i> نام درس</label><input type="text" id="courseName" placeholder="مثال: ریاضی"></div>
+                <div class="form-group"><label><i class="fas fa-hashtag"></i> کد درس</label><input type="text" id="courseCode" placeholder="مثال: ۱۲۳۴"></div>
+                <div class="form-group"><label><i class="fas fa-calendar-day"></i> روز هفته</label>
+                    <select id="courseDay"><option value="0">شنبه</option><option value="1">یک‌شنبه</option><option value="2">دوشنبه</option><option value="3">سه‌شنبه</option><option value="4">چهارشنبه</option><option value="5">پنج‌شنبه</option><option value="6">جمعه</option></select>
+                </div>
+                <div class="form-group"><label><i class="fas fa-clock"></i> ساعت شروع</label><input type="time" id="startTime" value="08:00"></div>
+                <div class="form-group"><label><i class="fas fa-clock"></i> ساعت پایان</label><input type="time" id="endTime" value="10:00"></div>
+                <div class="form-group"><label><i class="fas fa-chalkboard-teacher"></i> استاد</label><input type="text" id="professor" placeholder="نام استاد"></div>
+                <div class="form-group"><label><i class="fas fa-map-marker-alt"></i> مکان</label><input type="text" id="location" placeholder="دانشکده"></div>
+                
+                <!-- فیلدهای واحد -->
+                <div class="form-group"><label><i class="fas fa-calculator"></i> واحد تئوری</label><input type="number" step="0.1" min="0" id="theoretical" value="0.0"></div>
+                <div class="form-group"><label><i class="fas fa-calculator"></i> واحد عملی</label><input type="number" step="0.1" min="0" id="practical" value="0.0"></div>
+                <div class="form-group"><label><i class="fas fa-calculator"></i> واحد کل</label><input type="number" step="0.1" min="0" id="total" value="0.0"></div>
+
+                <div class="form-group checkbox-group">
+                    <label><i class="fas fa-globe"></i> آنلاین</label>
+                    <input type="checkbox" id="isOnline" style="width:20px; height:20px;">
+                </div>
+                <div class="form-group" id="onlineLinkGroup" style="display:none;">
+                    <label><i class="fas fa-link"></i> لینک جلسه</label>
+                    <input type="url" id="onlineLink" placeholder="https://">
+                </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn-add" onclick="saveCourse()"><i class="fas fa-save"></i> ذخیره</button>
+                    <button class="btn-cancel" onclick="cancelEdit()"><i class="fas fa-times"></i> لغو</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="designer-footer">
+            <p><i class="fas fa-paint-brush"></i> طراحی و توسعه توسط <span class="name">محمد مهدی مولایاری</span> <i class="fas fa-code"></i></p>
+            <div class="contact-info">
+                <a href="tel:+989375379205" dir="ltr"><i class="fas fa-phone-alt"></i> 09375379205</a>
+                <a href="https://t.me/AE_MOLA" target="_blank"><i class="fab fa-telegram-plane"></i> t.me/AE_MOLA</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- فایل صوتی زنگ -->
+    <audio id="bellSound" preload="auto">
+        <source src="https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        (function() {
+            const TEHRAN_OFFSET = 3.5 * 60 * 60 * 1000;
+            const ADMIN_HASH = "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918";
+            const USERNAME = "MOLA";
+
+            let coursesData = [];
+            let isLoggedIn = false;
+            let bellPlayed = [];
+
+            const bellSound = document.getElementById('bellSound');
+
+            // هش
+            async function hashPassword(password) {
+                const encoder = new TextEncoder();
+                const data = encoder.encode(password);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            }
+
+            window.login = async function() {
+                const user = document.getElementById('username').value;
+                const pass = document.getElementById('password').value;
+                if (user !== USERNAME) {
+                    alert('نام کاربری اشتباه است');
+                    return;
+                }
+                const hashed = await hashPassword(pass);
+                if (hashed === ADMIN_HASH) {
+                    isLoggedIn = true;
+                    localStorage.setItem('isLoggedIn', 'true');
+                    updateLoginUI();
+                    renderCards();
+                } else {
+                    alert('رمز عبور اشتباه است');
+                }
+            };
+
+            window.logout = function() {
+                isLoggedIn = false;
+                localStorage.removeItem('isLoggedIn');
+                updateLoginUI();
+                renderCards();
+                cancelEdit();
+            };
+
+            function updateLoginUI() {
+                const loginContainer = document.getElementById('loginContainer');
+                const usernameInput = document.getElementById('username');
+                const passwordInput = document.getElementById('password');
+                const loginBtn = loginContainer.querySelector('button[onclick="login()"]');
+                const logoutBtn = document.getElementById('logoutBtn');
+                const adminSection = document.getElementById('adminSection');
+
+                if (isLoggedIn) {
+                    usernameInput.style.display = 'none';
+                    passwordInput.style.display = 'none';
+                    loginBtn.style.display = 'none';
+                    logoutBtn.style.display = 'inline-block';
+                    adminSection.classList.add('visible');
+                } else {
+                    usernameInput.style.display = 'inline-block';
+                    passwordInput.style.display = 'inline-block';
+                    loginBtn.style.display = 'inline-flex';
+                    logoutBtn.style.display = 'none';
+                    adminSection.classList.remove('visible');
+                }
+            }
+
+            async function checkStoredLogin() {
+                const stored = localStorage.getItem('isLoggedIn');
+                if (stored === 'true') {
+                    isLoggedIn = true;
+                }
+                updateLoginUI();
+            }
+
+            const defaultCourses = [
+                { name: "کارآفرینی و مدیریت کسب و کار", code: "۳۷۲۰۲۶", dayIndex: 0, startTime: "07:30", endTime: "10:30", theoretical: 1.0, practical: 1.0, total: 2.0, group: "۹۱۱۸", professor: "مجید بازویار", location: "دانشکده ۴۰ انقلاب اسلامی تهران", examDate: "۱۴۰۵/۰۴/۰۷", examTime: "ساعت جلسه", examDuration: "مشخص نشده", examLocation: "مشخص نشده", isOnline: false, onlineLink: "" },
+                { name: "فیلمنامه‌نویسی انیمیشن کوتاه", code: "۳۷۲۰۰۸", dayIndex: 0, startTime: "10:30", endTime: "13:30", theoretical: 1.0, practical: 1.0, total: 2.0, group: "۹۱۳۰", professor: "مظاهر خادملو", location: "دانشکده ۴۰ انقلاب اسلامی تهران", examDate: "طبق اعلام مدرس", examTime: "", examDuration: "مشخص نشده", examLocation: "مشخص نشده", isOnline: false, onlineLink: "" },
+                { name: "دانش خانواده و جمعيت", code: "۹۱۲۸", dayIndex: 1, startTime: "11:30", endTime: "13:30", theoretical: 2.0, practical: 0.0, total: 2.0, group: "۱۱۱۴", professor: "محمدرضا بنیان جوادی", location: "دانشکده ۴۰ انقلاب اسلامی تهران", examDate: "۱۴۰۵/۰۴/۱۰", examTime: "ساعت جلسه", examDuration: "مشخص نشده", examLocation: "مشخص نشده", isOnline: false, onlineLink: "" },
+                { name: "طراحی شخصیت", code: "۳۷۲۰۱۰", dayIndex: 1, startTime: "13:30", endTime: "17:30", theoretical: 0.0, practical: 2.0, total: 2.0, group: "۹۱۲۲", professor: "عبدالعلی غنی‌زاده", location: "دانشکده ۴۰ انقلاب اسلامی تهران", examDate: "طبق اعلام مدرس", examTime: "", examDuration: "مشخص نشده", examLocation: "مشخص نشده", isOnline: false, onlineLink: "" },
+                { name: "کارتون و کاریکاتور", code: "۳۷۲۰۰۹", dayIndex: 2, startTime: "07:30", endTime: "11:30", theoretical: 1.0, practical: 1.0, total: 2.0, group: "۹۱۲۰", professor: "حسین کشت کار", location: "دانشکده ۴۰ انقلاب اسلامی تهران", examDate: "طبق اعلام مدرس", examTime: "", examDuration: "مشخص نشده", examLocation: "مشخص نشده", isOnline: false, onlineLink: "" },
+                { name: "فیلمنامه مصور", code: "۳۷۲۰۱۱", dayIndex: 2, startTime: "12:30", endTime: "15:30", theoretical: 1.0, practical: 1.0, total: 2.0, group: "۹۱۱۹", professor: "حسین کشت کار", location: "دانشکده ۴۰ انقلاب اسلامی تهران", examDate: "طبق اعلام مدرس", examTime: "", examDuration: "مشخص نشده", examLocation: "مشخص نشده", isOnline: false, onlineLink: "" }
+            ];
+
+            function loadFromStorage() {
+                const stored = localStorage.getItem('coursesData');
+                if (stored) { try { coursesData = JSON.parse(stored); } catch(e){ coursesData = [...defaultCourses]; } }
+                else { coursesData = [...defaultCourses]; }
+                coursesData.forEach(c => {
+                    if (c.theoretical === undefined) c.theoretical = 0.0;
+                    if (c.practical === undefined) c.practical = 0.0;
+                    if (c.total === undefined) c.total = 0.0;
+                });
+                resetBellPlayed();
+            }
+
+            function resetBellPlayed() {
+                bellPlayed = new Array(coursesData.length).fill(false);
+            }
+
+            function saveToStorage() {
+                localStorage.setItem('coursesData', JSON.stringify(coursesData));
+                resetBellPlayed();
+            }
+
+            function timeToMinutes(t) { let p = t.split(':'); return parseInt(p[0])*60 + parseInt(p[1]); }
+            function getDayName(d) { return ['شنبه','یک‌شنبه','دوشنبه','سه‌شنبه','چهارشنبه','پنج‌شنبه','جمعه'][d]; }
+
+            function sortCoursesWithPinned(tehranNow, currentDay, currentMinutes) {
+                return [...coursesData].sort((a, b) => {
+                    const aPinned = isPinned(a, currentDay, currentMinutes);
+                    const bPinned = isPinned(b, currentDay, currentMinutes);
+                    if (aPinned && !bPinned) return -1;
+                    if (!aPinned && bPinned) return 1;
+                    if (a.dayIndex !== b.dayIndex) return a.dayIndex - b.dayIndex;
+                    return timeToMinutes(a.startTime) - timeToMinutes(b.startTime);
+                });
+            }
+
+            function isPinned(course, currentDay, currentMinutes) {
+                if (course.dayIndex !== currentDay) return false;
+                const end = timeToMinutes(course.endTime);
+                return currentMinutes < end;
+            }
+
+            function renderCards() {
+                const nowUTC = Date.now();
+                const tehranNow = nowUTC + TEHRAN_OFFSET;
+                const tehranDate = new Date(tehranNow);
+                const jsDay = tehranDate.getUTCDay();
+                const currentDay = (jsDay + 1) % 7;
+                const currentHour = tehranDate.getUTCHours();
+                const currentMin = tehranDate.getUTCMinutes();
+                const currentMinutes = currentHour * 60 + currentMin;
+
+                const sorted = sortCoursesWithPinned(tehranNow, currentDay, currentMinutes);
+
+                const grid = document.getElementById('cardGrid');
+                grid.innerHTML = '';
+                sorted.forEach((course) => {
+                    const realIndex = coursesData.findIndex(c => 
+                        c.name === course.name && c.startTime === course.startTime && c.dayIndex === course.dayIndex
+                    );
+                    const startH = parseInt(course.startTime.split(':')[0]);
+                    const startM = parseInt(course.startTime.split(':')[1]);
+
+                    const card = document.createElement('div');
+                    card.className = 'course-card';
+                    card.setAttribute('data-day', course.dayIndex);
+                    card.setAttribute('data-start-hour', startH);
+                    card.setAttribute('data-start-min', startM);
+                    card.setAttribute('data-index', realIndex);
+                    card.setAttribute('onclick', 'toggleCard(this)');
+
+                    let adminDiv = '';
+                    if (isLoggedIn) {
+                        adminDiv = `
+                            <div class="admin-controls">
+                                <div class="edit-btn" onclick="event.stopPropagation(); editCourse(${realIndex})"><i class="fas fa-edit"></i></div>
+                                <div class="delete-btn" onclick="event.stopPropagation(); deleteCourse(${realIndex})"><i class="fas fa-trash"></i></div>
+                            </div>
+                        `;
+                    }
+
+                    let onlineBadge = '';
+                    let onlineLink = '';
+                    if (course.isOnline) {
+                        onlineBadge = '<div class="online-badge"><i class="fas fa-wifi"></i> آنلاین</div>';
+                        if (course.onlineLink) {
+                            onlineLink = `<div class="online-link"><a href="${course.onlineLink}" target="_blank"><i class="fas fa-external-link-alt"></i> لینک جلسه</a></div>`;
+                        }
+                    }
+
+                    const summary = document.createElement('div');
+                    summary.className = 'card-summary';
+                    summary.innerHTML = `
+                        ${adminDiv}
+                        <div class="day-time-badge"><i class="fas fa-calendar-day"></i> ${getDayName(course.dayIndex)} ${course.startTime}-${course.endTime}</div>
+                        <span class="summary-course-name">${course.name}</span>
+                        ${onlineBadge}
+                        ${onlineLink}
+                        <div class="countdown-area" id="countdown-${realIndex}"><i class="fas fa-hourglass-half"></i><span>در حال محاسبه...</span></div>
+                        <div class="expand-icon"><i class="fas fa-chevron-down"></i></div>
+                    `;
+
+                    const details = document.createElement('div');
+                    details.className = 'card-details';
+                    details.innerHTML = `
+                        <div class="details-content">
+                            <div class="course-code"><i class="fas fa-hashtag"></i> ${course.code}</div>
+                            <div class="units-mini">
+                                <span><i class="fas fa-chalkboard"></i> تئوری ${(course.theoretical||0).toFixed(1)}</span>
+                                <span><i class="fas fa-flask"></i> عملی ${(course.practical||0).toFixed(1)}</span>
+                                <span><i class="fas fa-layer-group"></i> کل ${(course.total||0).toFixed(1)}</span>
+                            </div>
+                            <div class="info-row"><i class="fas fa-users-between-lines"></i> <span><strong>گروه ${course.group||'---'}</strong> - استاد: ${course.professor}</span></div>
+                            <div class="info-row"><i class="fas fa-building-columns"></i> <span>${course.location}</span></div>
+                            ${course.isOnline && course.onlineLink ? `<div class="info-row"><i class="fas fa-link"></i> <span><a href="${course.onlineLink}" target="_blank">لینک جلسه</a></span></div>` : ''}
+                            <div class="exam-simple">
+                                <div class="exam-header"><i class="fas fa-pencil-alt"></i> آزمون</div>
+                                <div class="exam-detail-item"><i class="fas fa-calendar-alt"></i> <span>${course.examDate||'مشخص نشده'} ${course.examTime?'<span class="exam-date-badge">'+course.examTime+'</span>':''}</span></div>
+                                <div class="exam-detail-item"><i class="fas fa-hourglass-half"></i> مدت: ${course.examDuration||'مشخص نشده'}</div>
+                                <div class="exam-detail-item"><i class="fas fa-map-pin"></i> محل: ${course.examLocation||'مشخص نشده'}</div>
+                            </div>
+                        </div>
+                    `;
+
+                    const footer = document.createElement('div'); footer.className = 'card-footer';
+                    card.appendChild(summary); card.appendChild(details); card.appendChild(footer);
+                    grid.appendChild(card);
+                });
+            }
+
+            function updateCountdownsAndBell() {
+                const nowUTC = Date.now();
+                const tehranNow = nowUTC + TEHRAN_OFFSET;
+                const tehranDate = new Date(tehranNow);
+                const jsDay = tehranDate.getUTCDay();
+                const currentDay = (jsDay + 1) % 7;
+                const currentHour = tehranDate.getUTCHours();
+                const currentMin = tehranDate.getUTCMinutes();
+                const currentSec = tehranDate.getUTCSeconds();
+                const currentMinutes = currentHour * 60 + currentMin;
+
+                const persianFormatter = new Intl.DateTimeFormat('fa-IR', { timeZone: 'Asia/Tehran', dateStyle: 'full' });
+                document.getElementById('dateDisplay').innerHTML = `<i class="fas fa-calendar-alt"></i> ${persianFormatter.format(new Date())}`;
+                document.getElementById('timeDisplay').innerHTML = `<i class="fas fa-clock"></i> ${currentHour.toString().padStart(2,'0')}:${currentMin.toString().padStart(2,'0')}:${currentSec.toString().padStart(2,'0')}`;
+
+                const cards = document.querySelectorAll('.course-card');
+                let upcomingCount = 0;
+
+                cards.forEach(card => {
+                    const idx = card.getAttribute('data-index');
+                    if (!idx) return;
+                    const i = parseInt(idx);
+                    const course = coursesData[i];
+                    if (!course) return;
+
+                    const cardDay = course.dayIndex;
+                    const startHour = parseInt(card.getAttribute('data-start-hour'));
+                    const startMin = parseInt(card.getAttribute('data-start-min'));
+                    const endHour = parseInt(course.endTime.split(':')[0]);
+                    const endMin = parseInt(course.endTime.split(':')[1]);
+                    const startTotal = startHour*60 + startMin;
+                    const endTotal = endHour*60 + endMin;
+
+                    card.classList.remove('today-highlight');
+                    if (cardDay === currentDay && currentMinutes < endTotal) {
+                        card.classList.add('today-highlight');
+                        upcomingCount++;
+                    }
+
+                    let diffDays = (cardDay - currentDay + 7) % 7;
+                    if (diffDays === 0 && currentMinutes >= startTotal) diffDays = 7;
+
+                    const targetTehran = tehranNow + diffDays * 86400000;
+                    const targetDate = new Date(targetTehran);
+                    targetDate.setUTCHours(0,0,0,0);
+                    const targetStartDay = targetDate.getTime();
+                    const targetWithHour = targetStartDay + startHour*3600000 + startMin*60000;
+                    const targetUTC = targetWithHour - TEHRAN_OFFSET;
+                    let diffMs = targetUTC - nowUTC;
+                    if (diffMs < 0) diffMs = 0;
+
+                    let displayText = '';
+                    const isNowOngoing = (cardDay === currentDay && currentMinutes >= startTotal && currentMinutes < endTotal);
+                    if (isNowOngoing) {
+                        displayText = '⚡ در حال برگزاری';
+                    } else {
+                        const totalSec = Math.floor(diffMs / 1000);
+                        const days = Math.floor(totalSec / 86400);
+                        const hours = Math.floor((totalSec % 86400) / 3600);
+                        const mins = Math.floor((totalSec % 3600) / 60);
+                        const secs = totalSec % 60;
+                        if (days > 0) displayText = `⏳ تا شروع: ${days} روز ${hours} ساعت`;
+                        else if (hours > 0) displayText = `⏳ تا شروع: ${hours} ساعت ${mins} دقیقه`;
+                        else if (mins > 0) displayText = `⏳ تا شروع: ${mins} دقیقه ${secs} ثانیه`;
+                        else displayText = `⏳ تا شروع: ${secs} ثانیه`;
+                    }
+
+                    const countSpan = card.querySelector('.countdown-area span');
+                    if (countSpan) countSpan.innerText = displayText;
+
+                    if (isNowOngoing && !bellPlayed[i]) {
+                        playBell();
+                        bellPlayed[i] = true;
+                    }
+                    if (!isNowOngoing && bellPlayed[i]) {
+                        bellPlayed[i] = false;
+                    }
+                });
+
+                const notif = document.getElementById('notifText');
+                if (upcomingCount === 0) notif.innerText = 'امروز کلاس باقی‌مانده نیست';
+                else if (upcomingCount === 1) notif.innerText = '⚠️ ۱ کلاس امروز باقی‌مانده';
+                else notif.innerText = `⚠️ ${upcomingCount} کلاس امروز باقی‌مانده`;
+            }
+
+            function playBell() {
+                if (bellSound) {
+                    bellSound.currentTime = 0;
+                    bellSound.play().catch(e => console.log('پخش صدا ممکن نیست', e));
+                }
+            }
+
+            window.editCourse = function(index) {
+                const course = coursesData[index];
+                document.getElementById('editIndex').value = index;
+                document.getElementById('courseName').value = course.name;
+                document.getElementById('courseCode').value = course.code;
+                document.getElementById('courseDay').value = course.dayIndex;
+                document.getElementById('startTime').value = course.startTime;
+                document.getElementById('endTime').value = course.endTime;
+                document.getElementById('professor').value = course.professor || '';
+                document.getElementById('location').value = course.location || '';
+                document.getElementById('theoretical').value = course.theoretical || 0;
+                document.getElementById('practical').value = course.practical || 0;
+                document.getElementById('total').value = course.total || 0;
+                document.getElementById('isOnline').checked = course.isOnline || false;
+                document.getElementById('onlineLink').value = course.onlineLink || '';
+                document.getElementById('onlineLinkGroup').style.display = course.isOnline ? 'block' : 'none';
+                document.getElementById('formTitle').innerText = 'ویرایش درس';
+                document.getElementById('adminSection').classList.add('visible');
+            };
+
+            window.deleteCourse = function(index) {
+                if (confirm('آیا از حذف این درس اطمینان دارید؟')) {
+                    coursesData.splice(index, 1);
+                    saveToStorage();
+                    renderCards();
+                }
+            };
+
+            window.saveCourse = function() {
+                const name = document.getElementById('courseName').value.trim();
+                const code = document.getElementById('courseCode').value.trim() || '---';
+                const dayIndex = parseInt(document.getElementById('courseDay').value);
+                const startTime = document.getElementById('startTime').value;
+                const endTime = document.getElementById('endTime').value;
+                const professor = document.getElementById('professor').value.trim() || 'نامشخص';
+                const location = document.getElementById('location').value.trim() || 'نامشخص';
+                const theoretical = parseFloat(document.getElementById('theoretical').value) || 0;
+                const practical = parseFloat(document.getElementById('practical').value) || 0;
+                const total = parseFloat(document.getElementById('total').value) || 0;
+                const isOnline = document.getElementById('isOnline').checked;
+                const onlineLink = document.getElementById('onlineLink').value.trim();
+
+                if (!name || !startTime || !endTime) { alert('لطفاً نام درس و ساعت را وارد کنید'); return; }
+
+                const newCourse = {
+                    name, code, dayIndex, startTime, endTime,
+                    theoretical, practical, total,
+                    group: '---', professor, location,
+                    examDate: 'مشخص نشده', examTime: '', examDuration: 'مشخص نشده', examLocation: 'مشخص نشده',
+                    isOnline, onlineLink
+                };
+
+                const editIndex = parseInt(document.getElementById('editIndex').value);
+                if (editIndex >= 0) {
+                    coursesData[editIndex] = newCourse;
+                } else {
+                    coursesData.push(newCourse);
+                }
+                saveToStorage();
+                cancelEdit();
+                renderCards();
+            };
+
+            window.cancelEdit = function() {
+                document.getElementById('editIndex').value = '-1';
+                document.getElementById('courseName').value = '';
+                document.getElementById('courseCode').value = '';
+                document.getElementById('startTime').value = '08:00';
+                document.getElementById('endTime').value = '10:00';
+                document.getElementById('professor').value = '';
+                document.getElementById('location').value = '';
+                document.getElementById('theoretical').value = '0.0';
+                document.getElementById('practical').value = '0.0';
+                document.getElementById('total').value = '0.0';
+                document.getElementById('isOnline').checked = false;
+                document.getElementById('onlineLink').value = '';
+                document.getElementById('onlineLinkGroup').style.display = 'none';
+                document.getElementById('formTitle').innerText = 'افزودن درس جدید';
+            };
+
+            document.getElementById('isOnline').addEventListener('change', function(e) {
+                document.getElementById('onlineLinkGroup').style.display = e.target.checked ? 'block' : 'none';
+            });
+
+            window.toggleCard = function(card) { card.classList.toggle('expanded'); };
+
+            function requestNotification() {
+                if (Notification.permission === 'default') {
+                    Notification.requestPermission();
+                }
+            }
+
+            loadFromStorage();
+            checkStoredLogin().then(() => {
+                renderCards();
+                requestNotification();
+                setInterval(updateCountdownsAndBell, 1000);
+            });
+        })();
+    </script>
+</body>
+</html>
