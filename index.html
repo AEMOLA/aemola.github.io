@@ -692,16 +692,17 @@
                 return perm;
             }
 
-            /** نمایش نوتیف مستقیم از صفحه (بدون وابستگی به Service Worker) */
+            /** نمایش نوتیف مستقیم از صفحه — هر بار با tag یکتا تا مرورگر نوتیف بعدی را هم نشان دهد */
             function showNotification(title, body) {
                 if (!('Notification' in window)) return;
                 if (Notification.permission !== 'granted') return;
                 const t = title || 'یادآور کلاس';
                 const b = body || '';
+                const tag = 'notif-' + Date.now();
                 try {
-                    new Notification(t, { body: b, icon: '/icons/icon-192x192.png' });
+                    new Notification(t, { body: b, icon: '/icons/icon-192x192.png', tag });
                 } catch (err) {
-                    try { new Notification(t, { body: b }); } catch (e) { console.warn('نمایش نوتیف:', err); }
+                    try { new Notification(t, { body: b, tag }); } catch (e) { console.warn('نمایش نوتیف:', err); }
                 }
             }
 
