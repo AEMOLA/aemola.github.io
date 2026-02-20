@@ -635,7 +635,7 @@
                     <input type="url" id="bellSoundUrl" placeholder="لینک فایل صوتی (MP3)" style="flex: 1; min-width: 250px; padding: 10px; border-radius: 40px; border: 2px solid #d4af37;" value="https://bigsoundbank.com/UPLOAD/mp3/1500.mp3">
                     <button class="btn-save-sound" onclick="saveBellSound()"><i class="fas fa-save"></i> ذخیره زنگ</button>
                     <button class="btn-cancel" onclick="playTestBell()"><i class="fas fa-play"></i> تست زنگ</button>
-                    <button class="btn-test-notif" id="testNotificationBtn" onclick="testNotification()" style="display:none;"><i class="fas fa-bell"></i> تست نوتیف</button>
+                    <button type="button" class="btn-test-notif" id="testNotificationBtn" onclick="testNotification()" style="display:none;"><i class="fas fa-bell"></i> تست نوتیف</button>
                 </div>
                 <p style="margin-top: 10px; font-size: 0.9rem; color: #666;">اگر صدا پخش نشد، روی "تست زنگ" کلیک کنید و سپس اجازه دهید مرورگر صدا را پخش کند.</p>
             </div>
@@ -692,21 +692,16 @@
                 return perm;
             }
 
-            /** نمایش نوتیف از طریق Service Worker (ترجیح) یا مستقیم — وقتی تب باز است کار می‌کند */
-            async function showNotification(title, body) {
-                if (!('Notification' in window) || Notification.permission !== 'granted') return;
-                const payload = { type: 'SHOW_NOTIFICATION', title: title || 'یادآور کلاس', body: body || '' };
+            /** نمایش نوتیف مستقیم از صفحه (بدون وابستگی به Service Worker) */
+            function showNotification(title, body) {
+                if (!('Notification' in window)) return;
+                if (Notification.permission !== 'granted') return;
+                const t = title || 'یادآور کلاس';
+                const b = body || '';
                 try {
-                    const reg = await navigator.serviceWorker.ready;
-                    if (reg.active) {
-                        reg.active.postMessage(payload);
-                        return;
-                    }
-                } catch (e) {}
-                try {
-                    new Notification(title || 'یادآور کلاس', { body: body || '', icon: '/icons/icon-192x192.png' });
+                    new Notification(t, { body: b, icon: '/icons/icon-192x192.png' });
                 } catch (err) {
-                    console.warn('نمایش نوتیفیکیشن:', err);
+                    try { new Notification(t, { body: b }); } catch (e) { console.warn('نمایش نوتیف:', err); }
                 }
             }
 
@@ -918,15 +913,23 @@
             }
 
             window.testNotification = async function() {
+                if (!('Notification' in window)) {
+                    alert('مرورگر شما نوتیفیکیشن پشتیبانی نمی‌کند.');
+                    return;
+                }
+                if (!window.isSecureContext) {
+                    alert('نوتیفیکیشن فقط روی آدرس امن (https یا localhost) کار می‌کند. فایل را مستقیم باز نکنید؛ سایت را با یک سرور لوکال یا هاست اجرا کنید.');
+                    return;
+                }
                 let perm = Notification.permission;
                 if (perm !== 'granted') {
-                    perm = await requestNotificationPermission();
+                    perm = await Notification.requestPermission();
                     if (perm !== 'granted') {
-                        alert('برای دریافت یادآور کلاس‌ها اجازه اعلان را بدهید.');
+                        alert('اجازه اعلان داده نشد. برای یادآور کلاس‌ها در تنظیمات مرورگر اجازهٔ «اعلان‌ها» را برای این سایت فعال کنید.');
                         return;
                     }
                 }
-                await showNotification('تست نوتیف', 'این یک پیام تستی از طرف ادمین است.');
+                showNotification('تست نوتیف', 'این یک پیام تستی از طرف ادمین است.');
             };
 
             function resetBellPlayed() { bellPlayed = new Array(coursesData.length).fill(false); }
