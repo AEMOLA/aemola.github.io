@@ -673,7 +673,7 @@
             /** لیست نوتیف‌های برنامه‌ریزی‌شده: { showAt, title, body, id } — با setInterval چک می‌شود تا با تب بسته/مینیمایز هم پایدار بماند */
             let pendingNotifications = [];
             let notificationCheckInterval = null;
-            const NOTIFICATION_CHECK_MS = 15 * 1000;
+            const NOTIFICATION_CHECK_MS = 10 * 1000;
             const NOTIFICATION_MINUTES_BEFORE = 5;
 
             function clearAllNotifications() {
@@ -692,17 +692,24 @@
                 return perm;
             }
 
-            /** نمایش نوتیف مستقیم از صفحه — هر بار با tag یکتا تا مرورگر نوتیف بعدی را هم نشان دهد */
-            function showNotification(title, body) {
+            /** نمایش نوتیف: در موبایل از SW (پایدارتر)، در دسکتاپ از صفحه یا SW */
+            async function showNotification(title, body) {
                 if (!('Notification' in window)) return;
                 if (Notification.permission !== 'granted') return;
                 const t = title || 'یادآور کلاس';
                 const b = body || '';
                 const tag = 'notif-' + Date.now();
                 try {
+                    const reg = await navigator.serviceWorker.ready;
+                    if (reg.active) {
+                        reg.active.postMessage({ type: 'SHOW_NOTIFICATION', title: t, body: b, tag });
+                        return;
+                    }
+                } catch (e) {}
+                try {
                     new Notification(t, { body: b, icon: '/icons/icon-192x192.png', tag });
                 } catch (err) {
-                    try { new Notification(t, { body: b, tag }); } catch (e) { console.warn('نمایش نوتیف:', err); }
+                    try { new Notification(t, { body: b, tag }); } catch (e2) { console.warn('نمایش نوتیف:', err); }
                 }
             }
 
@@ -752,8 +759,9 @@
             function runNotificationCheck() {
                 if (Notification.permission !== 'granted') return;
                 const now = Date.now();
-                const toShow = pendingNotifications.filter(n => n.showAt <= now + 60000);
-                pendingNotifications = pendingNotifications.filter(n => n.showAt > now + 60000);
+                const windowMs = 2 * 60 * 1000;
+                const toShow = pendingNotifications.filter(n => n.showAt <= now + windowMs);
+                pendingNotifications = pendingNotifications.filter(n => n.showAt > now + windowMs);
                 toShow.forEach(n => {
                     showNotification(n.title, n.body);
                 });
@@ -763,6 +771,18 @@
                 if (notificationCheckInterval) return;
                 runNotificationCheck();
                 notificationCheckInterval = setInterval(runNotificationCheck, NOTIFICATION_CHECK_MS);
+                document.addEventListener('visibilitychange', function() {
+                    if (document.visibilityState === 'visible') runNotificationCheck();
+                });
+            }
+
+            function rescheduleAllNotifications() {
+                if (Notification.permission !== 'granted') return;
+                pendingNotifications = [];
+                if (Array.isArray(coursesData) && coursesData.length) {
+                    coursesData.forEach(course => scheduleClassNotification(course));
+                }
+                startNotificationScheduler();
             }
 
             function setOfflineBanner(show) {
@@ -931,6 +951,7 @@
                     }
                 }
                 showNotification('تست نوتیف', 'این یک پیام تستی از طرف ادمین است.');
+                rescheduleAllNotifications();
             };
 
             function resetBellPlayed() { bellPlayed = new Array(coursesData.length).fill(false); }
