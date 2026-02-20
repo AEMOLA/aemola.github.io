@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@latest/dist/font-face.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* استایل‌های شما (کامل) - حذف نشده */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Vazir', 'Tahoma', sans-serif;
@@ -627,7 +626,6 @@
                     <input type="url" id="bellSoundUrl" placeholder="لینک فایل صوتی (MP3)" style="flex: 1; min-width: 250px; padding: 10px; border-radius: 40px; border: 2px solid #d4af37;" value="https://bigsoundbank.com/UPLOAD/mp3/1500.mp3">
                     <button class="btn-save-sound" onclick="saveBellSound()"><i class="fas fa-save"></i> ذخیره زنگ</button>
                     <button class="btn-cancel" onclick="playTestBell()"><i class="fas fa-play"></i> تست زنگ</button>
-                    <!-- دکمه تست نوتیف (فقط برای ادمین) -->
                     <button class="btn-test-notif" id="testNotificationBtn" onclick="testNotification()" style="display:none;"><i class="fas fa-bell"></i> تست نوتیف</button>
                 </div>
                 <p style="margin-top: 10px; font-size: 0.9rem; color: #666;">اگر صدا پخش نشد، روی "تست زنگ" کلیک کنید و سپس اجازه دهید مرورگر صدا را پخش کند.</p>
@@ -663,7 +661,6 @@
             const bellSound = document.getElementById('bellSound');
             let bellSoundUrl = "https://bigsoundbank.com/UPLOAD/mp3/1500.mp3";
 
-            // ===== مدیریت تایمرهای نوتیف =====
             let notificationTimeouts = [];
 
             function clearAllNotifications() {
@@ -671,7 +668,6 @@
                 notificationTimeouts = [];
             }
 
-            // ===== توابع نوتیفیکیشن =====
             function requestNotificationPermission() {
                 if ('Notification' in window && Notification.permission === 'default') {
                     Notification.requestPermission();
@@ -681,7 +677,6 @@
             function scheduleClassNotification(course, minutesBefore = 5) {
                 if (!('Notification' in window) || Notification.permission !== 'granted') return;
 
-                // محاسبه زمان شروع درس (بر اساس روز و ساعت)
                 const now = new Date();
                 const tehranNow = now.getTime() + TEHRAN_OFFSET;
                 const tehranDate = new Date(tehranNow);
@@ -701,12 +696,12 @@
                 const targetTehran = tehranNow + diffDays * 86400000;
                 const targetDate = new Date(targetTehran);
                 targetDate.setUTCHours(startHour, startMin, 0, 0);
-                const targetTime = targetDate.getTime() - TEHRAN_OFFSET; // به UTC
+                const targetTime = targetDate.getTime() - TEHRAN_OFFSET;
 
                 const notificationTime = targetTime - minutesBefore * 60 * 1000;
                 const delay = notificationTime - Date.now();
 
-                if (delay > 0 && delay < 7 * 24 * 60 * 60 * 1000) { // حداکثر یک هفته
+                if (delay > 0 && delay < 7 * 24 * 60 * 60 * 1000) {
                     const timeoutId = setTimeout(() => {
                         if (navigator.serviceWorker?.controller) {
                             navigator.serviceWorker.controller.postMessage({
@@ -725,24 +720,19 @@
                 }
             }
 
-            // ===== توابع کش برای آفلاین =====
             async function loadCoursesWithCache() {
-                // پاک کردن تایمرهای قبلی
                 clearAllNotifications();
 
-                // ابتدا از کش (localStorage) نمایش بده
                 const cached = localStorage.getItem('cachedCourses');
                 if (cached) {
                     try {
                         coursesData = JSON.parse(cached);
                         renderCards();
                         updateCountdownsAndBell();
-                        // تنظیم نوتیف برای داده‌های کش
                         coursesData.forEach(course => scheduleClassNotification(course));
                     } catch (e) {}
                 }
 
-                // سپس از شبکه بگیر و کش را به‌روز کن
                 try {
                     const { data, error } = await supabase
                         .from('courses')
@@ -755,8 +745,6 @@
                         resetBellPlayed();
                         renderCards();
                         updateCountdownsAndBell();
-
-                        // برنامه‌ریزی نوتیف برای کلاس‌های آینده (تایمرهای جدید)
                         data.forEach(course => scheduleClassNotification(course));
                     }
                 } catch (e) {
@@ -764,7 +752,6 @@
                 }
             }
 
-            // ===== توابع تنظیمات زنگ =====
             async function subscribeToSettings() {
                 if (unsubscribeSettings) unsubscribeSettings();
                 const { data, error } = await supabase
@@ -803,7 +790,6 @@
                 });
             };
 
-            // ===== توابع احراز هویت =====
             window.login = async function() {
                 const email = document.getElementById('email').value;
                 const pass = document.getElementById('password').value;
@@ -867,45 +853,25 @@
                 }
             }
 
-            // ===== دکمه تست نوتیف =====
             window.testNotification = function() {
                 if (Notification.permission !== 'granted') {
                     alert('لطفاً ابتدا اجازه نوتیف را صادر کنید.');
                     return;
                 }
-                // نمایش نوتیف تستی با تاخیر ۳ ثانیه
-                const title = 'تست نوتیف';
-                const body = 'این یک پیام تستی از طرف ادمین است.';
                 if (navigator.serviceWorker?.controller) {
                     navigator.serviceWorker.controller.postMessage({
                         type: 'SHOW_NOTIFICATION',
-                        title: title,
-                        body: body
+                        title: 'تست نوتیف',
+                        body: 'این یک پیام تستی از طرف ادمین است.'
                     });
                 } else {
-                    new Notification(title, {
-                        body: body,
+                    new Notification('تست نوتیف', {
+                        body: 'این یک پیام تستی از طرف ادمین است.',
                         icon: '/icons/icon-192x192.png'
                     });
                 }
-                // همچنین می‌توانیم از setTimeout برای شبیه‌سازی نوتیف با تاخیر استفاده کنیم
-                setTimeout(() => {
-                    if (navigator.serviceWorker?.controller) {
-                        navigator.serviceWorker.controller.postMessage({
-                            type: 'SHOW_NOTIFICATION',
-                            title: 'یادآور تستی',
-                            body: 'این نوتیف با ۳ ثانیه تاخیر نمایش داده شد.'
-                        });
-                    } else {
-                        new Notification('یادآور تستی', {
-                            body: 'این نوتیف با ۳ ثانیه تاخیر نمایش داده شد.',
-                            icon: '/icons/icon-192x192.png'
-                        });
-                    }
-                }, 3000);
             };
 
-            // ===== توابع قبلی (بدون تغییر) =====
             function resetBellPlayed() { bellPlayed = new Array(coursesData.length).fill(false); }
             function timeToMinutes(t) { if (!t) return 0; let p = t.split(':'); return parseInt(p[0])*60 + parseInt(p[1]); }
             function getDayName(d) { return ['شنبه','یک‌شنبه','دوشنبه','سه‌شنبه','چهارشنبه','پنج‌شنبه','جمعه'][d]; }
@@ -1210,12 +1176,11 @@
 
             window.toggleCard = function(card) { card.classList.toggle('expanded'); };
 
-            // شروع به کار
             checkAuthState().then(() => {
                 subscribeToSettings();
                 loadCoursesWithCache();
                 setInterval(updateCountdownsAndBell, 1000);
-                requestNotificationPermission(); // برای همه کاربران درخواست مجوز
+                requestNotificationPermission();
             });
         })();
     </script>
@@ -1227,16 +1192,6 @@
                 });
             });
         }
-
-        // دریافت پیام از سرویس ورکر برای نمایش نوتیف
-        navigator.serviceWorker?.addEventListener('message', event => {
-            if (event.data.type === 'SHOW_NOTIFICATION') {
-                new Notification(event.data.title, {
-                    body: event.data.body,
-                    icon: '/icons/icon-192x192.png'
-                });
-            }
-        });
     </script>
 </body>
 </html>
