@@ -168,6 +168,12 @@
         }
         .instruction i { color: #b8860b; font-size: 1.3rem; animation: bounce 1.5s infinite; }
         @keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        .offline-banner {
+            text-align: center; padding: 0.6rem 1rem; margin-bottom: 16px;
+            background: #fff3cd; color: #856404; border: 2px solid #d4af37;
+            border-radius: 40px; font-weight: 700; font-size: 0.95rem;
+        }
+        .offline-banner i { margin-left: 8px; }
         .card-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -581,8 +587,11 @@
             </div>
         </div>
 
-        <div class="instruction">
+        <div class="instruction" id="mainInstruction">
             <i class="fas fa-hand-pointer"></i> روی هر کارت کلیک کنید تا جزئیات کامل درس باز شود <i class="fas fa-chevron-down"></i>
+        </div>
+        <div class="offline-banner" id="offlineBanner" style="display:none;">
+            <i class="fas fa-wifi"></i> شما آفلاین هستید — در حال نمایش آخرین داده‌های ذخیره‌شده
         </div>
 
         <div class="card-grid" id="cardGrid"></div>
@@ -661,22 +670,47 @@
             const bellSound = document.getElementById('bellSound');
             let bellSoundUrl = "https://bigsoundbank.com/UPLOAD/mp3/1500.mp3";
 
-            let notificationTimeouts = [];
+            /** لیست نوتیف‌های برنامه‌ریزی‌شده: { showAt, title, body, id } — با setInterval چک می‌شود تا با تب بسته/مینیمایز هم پایدار بماند */
+            let pendingNotifications = [];
+            let notificationCheckInterval = null;
+            const NOTIFICATION_CHECK_MS = 30 * 1000;
+            const NOTIFICATION_MINUTES_BEFORE = 5;
 
             function clearAllNotifications() {
-                notificationTimeouts.forEach(timeout => clearTimeout(timeout));
-                notificationTimeouts = [];
-            }
-
-            function requestNotificationPermission() {
-                if ('Notification' in window && Notification.permission === 'default') {
-                    Notification.requestPermission();
+                pendingNotifications = [];
+                if (notificationCheckInterval) {
+                    clearInterval(notificationCheckInterval);
+                    notificationCheckInterval = null;
                 }
             }
 
-            function scheduleClassNotification(course, minutesBefore = 5) {
-                if (!('Notification' in window) || Notification.permission !== 'granted') return;
+            async function requestNotificationPermission() {
+                if (!('Notification' in window)) return 'unsupported';
+                if (Notification.permission === 'granted') return 'granted';
+                if (Notification.permission === 'denied') return 'denied';
+                const perm = await Notification.requestPermission();
+                return perm;
+            }
 
+            /** نمایش نوتیف از طریق Service Worker (ترجیح) یا مستقیم — وقتی تب باز است کار می‌کند */
+            async function showNotification(title, body) {
+                if (!('Notification' in window) || Notification.permission !== 'granted') return;
+                const payload = { type: 'SHOW_NOTIFICATION', title: title || 'یادآور کلاس', body: body || '' };
+                try {
+                    const reg = await navigator.serviceWorker.ready;
+                    if (reg.active) {
+                        reg.active.postMessage(payload);
+                        return;
+                    }
+                } catch (e) {}
+                try {
+                    new Notification(title || 'یادآور کلاس', { body: body || '', icon: '/icons/icon-192x192.png' });
+                } catch (err) {
+                    console.warn('نمایش نوتیفیکیشن:', err);
+                }
+            }
+
+            function getNextNotificationTime(course, minutesBefore) {
                 const now = new Date();
                 const tehranNow = now.getTime() + TEHRAN_OFFSET;
                 const tehranDate = new Date(tehranNow);
@@ -686,9 +720,9 @@
                 const currentMinutes = currentHour * 60 + currentMin;
 
                 const cardDay = course.dayIndex;
-                const startHour = parseInt(course.startTime.split(':')[0]);
-                const startMin = parseInt(course.startTime.split(':')[1]);
-                const startTotal = startHour*60 + startMin;
+                const startHour = parseInt(String(course.startTime || '08:00').split(':')[0], 10);
+                const startMin = parseInt(String(course.startTime || '08:00').split(':')[1], 10) || 0;
+                const startTotal = startHour * 60 + startMin;
 
                 let diffDays = (cardDay - currentDay + 7) % 7;
                 if (diffDays === 0 && currentMinutes >= startTotal) diffDays = 7;
@@ -697,27 +731,46 @@
                 const targetDate = new Date(targetTehran);
                 targetDate.setUTCHours(startHour, startMin, 0, 0);
                 const targetTime = targetDate.getTime() - TEHRAN_OFFSET;
+                return targetTime - minutesBefore * 60 * 1000;
+            }
 
-                const notificationTime = targetTime - minutesBefore * 60 * 1000;
-                const delay = notificationTime - Date.now();
+            function scheduleClassNotification(course, minutesBefore) {
+                minutesBefore = minutesBefore ?? NOTIFICATION_MINUTES_BEFORE;
+                if (!('Notification' in window) || Notification.permission !== 'granted') return;
 
-                if (delay > 0 && delay < 7 * 24 * 60 * 60 * 1000) {
-                    const timeoutId = setTimeout(() => {
-                        if (navigator.serviceWorker?.controller) {
-                            navigator.serviceWorker.controller.postMessage({
-                                type: 'SHOW_NOTIFICATION',
-                                title: 'یادآور کلاس',
-                                body: `کلاس ${course.name} تا ${minutesBefore} دقیقه دیگر شروع می‌شود.`
-                            });
-                        } else {
-                            new Notification('یادآور کلاس', {
-                                body: `کلاس ${course.name} تا ${minutesBefore} دقیقه دیگر شروع می‌شود.`,
-                                icon: '/icons/icon-192x192.png'
-                            });
-                        }
-                    }, delay);
-                    notificationTimeouts.push(timeoutId);
-                }
+                const now = Date.now();
+                const showAt = getNextNotificationTime(course, minutesBefore);
+                const maxFuture = 7 * 24 * 60 * 60 * 1000;
+                if (showAt <= now || showAt - now > maxFuture) return;
+
+                const id = course.id + '-' + showAt;
+                if (pendingNotifications.some(n => n.id === id)) return;
+                pendingNotifications.push({
+                    id,
+                    showAt,
+                    title: 'یادآور کلاس',
+                    body: `کلاس ${course.name} تا ${minutesBefore} دقیقه دیگر شروع می‌شود.`
+                });
+            }
+
+            function runNotificationCheck() {
+                const now = Date.now();
+                const toShow = pendingNotifications.filter(n => n.showAt <= now + 60000);
+                pendingNotifications = pendingNotifications.filter(n => n.showAt > now + 60000);
+                toShow.forEach(n => {
+                    showNotification(n.title, n.body);
+                });
+            }
+
+            function startNotificationScheduler() {
+                if (notificationCheckInterval) return;
+                runNotificationCheck();
+                notificationCheckInterval = setInterval(runNotificationCheck, NOTIFICATION_CHECK_MS);
+            }
+
+            function setOfflineBanner(show) {
+                const el = document.getElementById('offlineBanner');
+                if (el) el.style.display = show ? 'block' : 'none';
             }
 
             async function loadCoursesWithCache() {
@@ -726,12 +779,20 @@
                 const cached = localStorage.getItem('cachedCourses');
                 if (cached) {
                     try {
-                        coursesData = JSON.parse(cached);
+                        const parsed = JSON.parse(cached);
+                        coursesData = Array.isArray(parsed) ? parsed : [];
                         renderCards();
                         updateCountdownsAndBell();
                         coursesData.forEach(course => scheduleClassNotification(course));
+                        startNotificationScheduler();
                     } catch (e) {}
                 }
+
+                if (!navigator.onLine) {
+                    setOfflineBanner(true);
+                    return;
+                }
+                setOfflineBanner(false);
 
                 try {
                     const { data, error } = await supabase
@@ -739,16 +800,18 @@
                         .select('*')
                         .order('dayIndex', { ascending: true })
                         .order('startTime', { ascending: true });
-                    if (!error && data) {
+                    if (!error && data && Array.isArray(data)) {
                         coursesData = data;
                         localStorage.setItem('cachedCourses', JSON.stringify(data));
                         resetBellPlayed();
                         renderCards();
                         updateCountdownsAndBell();
                         data.forEach(course => scheduleClassNotification(course));
+                        startNotificationScheduler();
                     }
                 } catch (e) {
-                    console.warn('خطا در دریافت از شبکه، نمایش داده‌های کش شده', e);
+                    console.warn('خطا در دریافت از شبکه؛ نمایش داده‌های کش‌شده بدون تغییر', e);
+                    setOfflineBanner(true);
                 }
             }
 
@@ -853,23 +916,16 @@
                 }
             }
 
-            window.testNotification = function() {
-                if (Notification.permission !== 'granted') {
-                    alert('لطفاً ابتدا اجازه نوتیف را صادر کنید.');
-                    return;
+            window.testNotification = async function() {
+                let perm = Notification.permission;
+                if (perm !== 'granted') {
+                    perm = await requestNotificationPermission();
+                    if (perm !== 'granted') {
+                        alert('برای دریافت یادآور کلاس‌ها اجازه اعلان را بدهید.');
+                        return;
+                    }
                 }
-                if (navigator.serviceWorker?.controller) {
-                    navigator.serviceWorker.controller.postMessage({
-                        type: 'SHOW_NOTIFICATION',
-                        title: 'تست نوتیف',
-                        body: 'این یک پیام تستی از طرف ادمین است.'
-                    });
-                } else {
-                    new Notification('تست نوتیف', {
-                        body: 'این یک پیام تستی از طرف ادمین است.',
-                        icon: '/icons/icon-192x192.png'
-                    });
-                }
+                await showNotification('تست نوتیف', 'این یک پیام تستی از طرف ادمین است.');
             };
 
             function resetBellPlayed() { bellPlayed = new Array(coursesData.length).fill(false); }
@@ -1168,6 +1224,8 @@
                 document.getElementById('onlineLink').value = '';
                 document.getElementById('onlineLinkGroup').style.display = 'none';
                 document.getElementById('formTitle').innerText = 'افزودن درس جدید';
+                const adminSection = document.getElementById('adminSection');
+                if (adminSection) adminSection.classList.remove('visible');
             };
 
             document.getElementById('isOnline').addEventListener('change', function(e) {
@@ -1176,22 +1234,36 @@
 
             window.toggleCard = function(card) { card.classList.toggle('expanded'); };
 
-            checkAuthState().then(() => {
-                subscribeToSettings();
-                loadCoursesWithCache();
-                setInterval(updateCountdownsAndBell, 1000);
-                requestNotificationPermission();
-            });
-        })();
-    </script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js').then(reg => {
-                    console.log('Service Worker registered', reg);
+            function initApp() {
+                setOfflineBanner(!navigator.onLine);
+                checkAuthState().then(() => {
+                    subscribeToSettings();
+                    loadCoursesWithCache();
+                    setInterval(updateCountdownsAndBell, 1000);
+                    requestNotificationPermission();
                 });
+            }
+
+            window.addEventListener('online', () => {
+                setOfflineBanner(false);
+                loadCoursesWithCache();
             });
-        }
+            window.addEventListener('offline', () => {
+                setOfflineBanner(true);
+            });
+
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js').then(() => {
+                    return navigator.serviceWorker.ready;
+                }).then(() => {
+                    initApp();
+                }).catch(() => {
+                    initApp();
+                });
+            } else {
+                initApp();
+            }
+        })();
     </script>
 </body>
 </html>
