@@ -36,7 +36,6 @@ self.addEventListener('fetch', event => {
   }
 });
 
-// ===== دریافت پیام از صفحه اصلی و نمایش نوتیف =====
 self.addEventListener('message', event => {
   if (event.data?.type === 'SHOW_NOTIFICATION') {
     self.registration.showNotification(event.data.title, {
@@ -48,7 +47,6 @@ self.addEventListener('message', event => {
   }
 });
 
-// ===== کلیک روی نوتیف =====
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   event.waitUntil(
