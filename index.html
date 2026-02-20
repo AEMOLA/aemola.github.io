@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@latest/dist/font-face.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* همان استایل‌های شما - حذف نشده */
+        /* استایل‌های شما (کامل) - حذف نشده */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Vazir', 'Tahoma', sans-serif;
@@ -467,7 +467,7 @@
             align-items: center;
             gap: 10px;
         }
-        .btn-add, .btn-cancel, .btn-save-sound {
+        .btn-add, .btn-cancel, .btn-save-sound, .btn-test-notif {
             padding: 10px 25px;
             border-radius: 40px;
             font-weight: 800;
@@ -484,9 +484,11 @@
         .btn-add { background: #1a1a1a; color: #d4af37; }
         .btn-cancel { background: #7f8c8d; color: white; border-color: #95a5a6; }
         .btn-save-sound { background: #27ae60; color: white; border-color: #d4af37; }
+        .btn-test-notif { background: #d4af37; color: #1a1a1a; border-color: #b8860b; }
         .btn-add:hover { background: #d4af37; color: #1a1a1a; }
         .btn-cancel:hover { background: #95a5a6; }
         .btn-save-sound:hover { background: #2ecc71; }
+        .btn-test-notif:hover { background: #b8860b; color: white; }
         .sound-settings {
             margin-top: 30px;
             padding-top: 20px;
@@ -625,6 +627,8 @@
                     <input type="url" id="bellSoundUrl" placeholder="لینک فایل صوتی (MP3)" style="flex: 1; min-width: 250px; padding: 10px; border-radius: 40px; border: 2px solid #d4af37;" value="https://bigsoundbank.com/UPLOAD/mp3/1500.mp3">
                     <button class="btn-save-sound" onclick="saveBellSound()"><i class="fas fa-save"></i> ذخیره زنگ</button>
                     <button class="btn-cancel" onclick="playTestBell()"><i class="fas fa-play"></i> تست زنگ</button>
+                    <!-- دکمه تست نوتیف (فقط برای ادمین) -->
+                    <button class="btn-test-notif" id="testNotificationBtn" onclick="testNotification()" style="display:none;"><i class="fas fa-bell"></i> تست نوتیف</button>
                 </div>
                 <p style="margin-top: 10px; font-size: 0.9rem; color: #666;">اگر صدا پخش نشد، روی "تست زنگ" کلیک کنید و سپس اجازه دهید مرورگر صدا را پخش کند.</p>
             </div>
@@ -658,6 +662,14 @@
             let unsubscribeSettings = null;
             const bellSound = document.getElementById('bellSound');
             let bellSoundUrl = "https://bigsoundbank.com/UPLOAD/mp3/1500.mp3";
+
+            // ===== مدیریت تایمرهای نوتیف =====
+            let notificationTimeouts = [];
+
+            function clearAllNotifications() {
+                notificationTimeouts.forEach(timeout => clearTimeout(timeout));
+                notificationTimeouts = [];
+            }
 
             // ===== توابع نوتیفیکیشن =====
             function requestNotificationPermission() {
@@ -695,7 +707,7 @@
                 const delay = notificationTime - Date.now();
 
                 if (delay > 0 && delay < 7 * 24 * 60 * 60 * 1000) { // حداکثر یک هفته
-                    setTimeout(() => {
+                    const timeoutId = setTimeout(() => {
                         if (navigator.serviceWorker?.controller) {
                             navigator.serviceWorker.controller.postMessage({
                                 type: 'SHOW_NOTIFICATION',
@@ -709,11 +721,15 @@
                             });
                         }
                     }, delay);
+                    notificationTimeouts.push(timeoutId);
                 }
             }
 
             // ===== توابع کش برای آفلاین =====
             async function loadCoursesWithCache() {
+                // پاک کردن تایمرهای قبلی
+                clearAllNotifications();
+
                 // ابتدا از کش (localStorage) نمایش بده
                 const cached = localStorage.getItem('cachedCourses');
                 if (cached) {
@@ -721,6 +737,8 @@
                         coursesData = JSON.parse(cached);
                         renderCards();
                         updateCountdownsAndBell();
+                        // تنظیم نوتیف برای داده‌های کش
+                        coursesData.forEach(course => scheduleClassNotification(course));
                     } catch (e) {}
                 }
 
@@ -738,7 +756,7 @@
                         renderCards();
                         updateCountdownsAndBell();
 
-                        // برنامه‌ریزی نوتیف برای کلاس‌های آینده
+                        // برنامه‌ریزی نوتیف برای کلاس‌های آینده (تایمرهای جدید)
                         data.forEach(course => scheduleClassNotification(course));
                     }
                 } catch (e) {
@@ -746,7 +764,7 @@
                 }
             }
 
-            // ===== بقیه توابع مثل قبل =====
+            // ===== توابع تنظیمات زنگ =====
             async function subscribeToSettings() {
                 if (unsubscribeSettings) unsubscribeSettings();
                 const { data, error } = await supabase
@@ -785,6 +803,7 @@
                 });
             };
 
+            // ===== توابع احراز هویت =====
             window.login = async function() {
                 const email = document.getElementById('email').value;
                 const pass = document.getElementById('password').value;
@@ -828,6 +847,7 @@
                 const loginBtn = document.querySelector('#loginContainer button[onclick="login()"]');
                 const logoutBtn = document.getElementById('logoutBtn');
                 const adminSection = document.getElementById('adminSection');
+                const testNotifBtn = document.getElementById('testNotificationBtn');
 
                 if (isLoggedIn) {
                     emailInput.style.display = 'none';
@@ -836,14 +856,54 @@
                     logoutBtn.style.display = 'inline-block';
                     adminSection.classList.add('visible');
                     document.getElementById('bellSoundUrl').value = bellSoundUrl;
+                    if (testNotifBtn) testNotifBtn.style.display = 'inline-block';
                 } else {
                     emailInput.style.display = 'inline-block';
                     passwordInput.style.display = 'inline-block';
                     loginBtn.style.display = 'inline-flex';
                     logoutBtn.style.display = 'none';
                     adminSection.classList.remove('visible');
+                    if (testNotifBtn) testNotifBtn.style.display = 'none';
                 }
             }
+
+            // ===== دکمه تست نوتیف =====
+            window.testNotification = function() {
+                if (Notification.permission !== 'granted') {
+                    alert('لطفاً ابتدا اجازه نوتیف را صادر کنید.');
+                    return;
+                }
+                // نمایش نوتیف تستی با تاخیر ۳ ثانیه
+                const title = 'تست نوتیف';
+                const body = 'این یک پیام تستی از طرف ادمین است.';
+                if (navigator.serviceWorker?.controller) {
+                    navigator.serviceWorker.controller.postMessage({
+                        type: 'SHOW_NOTIFICATION',
+                        title: title,
+                        body: body
+                    });
+                } else {
+                    new Notification(title, {
+                        body: body,
+                        icon: '/icons/icon-192x192.png'
+                    });
+                }
+                // همچنین می‌توانیم از setTimeout برای شبیه‌سازی نوتیف با تاخیر استفاده کنیم
+                setTimeout(() => {
+                    if (navigator.serviceWorker?.controller) {
+                        navigator.serviceWorker.controller.postMessage({
+                            type: 'SHOW_NOTIFICATION',
+                            title: 'یادآور تستی',
+                            body: 'این نوتیف با ۳ ثانیه تاخیر نمایش داده شد.'
+                        });
+                    } else {
+                        new Notification('یادآور تستی', {
+                            body: 'این نوتیف با ۳ ثانیه تاخیر نمایش داده شد.',
+                            icon: '/icons/icon-192x192.png'
+                        });
+                    }
+                }, 3000);
+            };
 
             // ===== توابع قبلی (بدون تغییر) =====
             function resetBellPlayed() { bellPlayed = new Array(coursesData.length).fill(false); }
@@ -955,7 +1015,6 @@
             }
 
             function updateCountdownsAndBell() {
-                // همان تابع قبلی
                 const nowUTC = Date.now();
                 const tehranNow = nowUTC + TEHRAN_OFFSET;
                 const tehranDate = new Date(tehranNow);
@@ -1156,6 +1215,7 @@
                 subscribeToSettings();
                 loadCoursesWithCache();
                 setInterval(updateCountdownsAndBell, 1000);
+                requestNotificationPermission(); // برای همه کاربران درخواست مجوز
             });
         })();
     </script>
