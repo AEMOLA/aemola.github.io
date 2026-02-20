@@ -673,7 +673,7 @@
             /** لیست نوتیف‌های برنامه‌ریزی‌شده: { showAt, title, body, id } — با setInterval چک می‌شود تا با تب بسته/مینیمایز هم پایدار بماند */
             let pendingNotifications = [];
             let notificationCheckInterval = null;
-            const NOTIFICATION_CHECK_MS = 30 * 1000;
+            const NOTIFICATION_CHECK_MS = 15 * 1000;
             const NOTIFICATION_MINUTES_BEFORE = 5;
 
             function clearAllNotifications() {
@@ -710,9 +710,10 @@
                 }
             }
 
+            /** زمان نمایش نوتیف (UTC ms): دقیقاً وقتی در تهران cardDay و startHour:startMin است، منهای minutesBefore */
             function getNextNotificationTime(course, minutesBefore) {
-                const now = new Date();
-                const tehranNow = now.getTime() + TEHRAN_OFFSET;
+                const now = Date.now();
+                const tehranNow = now + TEHRAN_OFFSET;
                 const tehranDate = new Date(tehranNow);
                 const currentDay = (tehranDate.getUTCDay() + 1) % 7;
                 const currentHour = tehranDate.getUTCHours();
@@ -728,32 +729,32 @@
                 if (diffDays === 0 && currentMinutes >= startTotal) diffDays = 7;
 
                 const targetTehran = tehranNow + diffDays * 86400000;
-                const targetDate = new Date(targetTehran);
-                targetDate.setUTCHours(startHour, startMin, 0, 0);
-                const targetTime = targetDate.getTime() - TEHRAN_OFFSET;
-                return targetTime - minutesBefore * 60 * 1000;
+                const targetTehranMidnight = Math.floor(targetTehran / 86400000) * 86400000;
+                const classStartUTC = (targetTehranMidnight - TEHRAN_OFFSET) + (startHour * 60 + startMin) * 60 * 1000;
+                return classStartUTC - minutesBefore * 60 * 1000;
             }
 
             function scheduleClassNotification(course, minutesBefore) {
                 minutesBefore = minutesBefore ?? NOTIFICATION_MINUTES_BEFORE;
-                if (!('Notification' in window) || Notification.permission !== 'granted') return;
+                if (!('Notification' in window)) return;
 
                 const now = Date.now();
                 const showAt = getNextNotificationTime(course, minutesBefore);
                 const maxFuture = 7 * 24 * 60 * 60 * 1000;
                 if (showAt <= now || showAt - now > maxFuture) return;
 
-                const id = course.id + '-' + showAt;
+                const id = (course.id || course.name) + '-' + showAt;
                 if (pendingNotifications.some(n => n.id === id)) return;
                 pendingNotifications.push({
                     id,
                     showAt,
                     title: 'یادآور کلاس',
-                    body: `کلاس ${course.name} تا ${minutesBefore} دقیقه دیگر شروع می‌شود.`
+                    body: `کلاس «${course.name}» تا ${minutesBefore} دقیقه دیگر شروع می‌شود.`
                 });
             }
 
             function runNotificationCheck() {
+                if (Notification.permission !== 'granted') return;
                 const now = Date.now();
                 const toShow = pendingNotifications.filter(n => n.showAt <= now + 60000);
                 pendingNotifications = pendingNotifications.filter(n => n.showAt > now + 60000);
@@ -1234,14 +1235,13 @@
 
             window.toggleCard = function(card) { card.classList.toggle('expanded'); };
 
-            function initApp() {
+            async function initApp() {
                 setOfflineBanner(!navigator.onLine);
-                checkAuthState().then(() => {
-                    subscribeToSettings();
-                    loadCoursesWithCache();
-                    setInterval(updateCountdownsAndBell, 1000);
-                    requestNotificationPermission();
-                });
+                await requestNotificationPermission();
+                await checkAuthState();
+                subscribeToSettings();
+                loadCoursesWithCache();
+                setInterval(updateCountdownsAndBell, 1000);
             }
 
             window.addEventListener('online', () => {
