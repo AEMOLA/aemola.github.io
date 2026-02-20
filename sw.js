@@ -78,18 +78,19 @@ self.addEventListener('fetch', event => {
   }
 });
 
-// نوتیفیکیشن از طریق پیام صفحه (تب باز) — برای تب بسته نیاز به سرور Push دارید
+// نوتیفیکیشن از طریق پیام صفحه — در موبایل فقط از این طریق پایدار کار می‌کند
 self.addEventListener('message', event => {
   if (event.data?.type === 'SHOW_NOTIFICATION') {
-    const { title, body, tag = 'class-reminder' } = event.data;
+    const { title, body, tag } = event.data;
+    const uniqueTag = tag || 'notif-' + Date.now();
     const promise = self.registration.showNotification(title || 'یادآور کلاس', {
       body: body || '',
       icon: '/icons/icon-192x192.png',
       badge: '/icons/icon-192x192.png',
-      tag,
+      tag: uniqueTag,
       vibrate: [200, 100, 200],
       requireInteraction: false
-    });
+    }).catch(function () {});
     if (event.waitUntil) event.waitUntil(promise);
   }
 });
