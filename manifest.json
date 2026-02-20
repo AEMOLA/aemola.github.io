@@ -1,7 +1,7 @@
 {
-  "name": "برنامه کلاسی هوشمند",
-  "short_name": "برنامه کلاسی",
-  "description": "مدیریت هوشمند کلاس‌ها با قابلیت پین خودکار و زنگ هشدار",
+  "name": "اActive class",
+  "short_name": "AC",
+  "description": "مدیریت هوشمند کلاس‌ها",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#1a1a1a",
