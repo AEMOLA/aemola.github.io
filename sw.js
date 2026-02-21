@@ -1,15 +1,17 @@
-const CACHE_NAME = 'class-schedule-v5';
-const API_CACHE = 'class-schedule-api-v3';
+const CACHE_NAME = 'class-schedule-v7';
+const API_CACHE = 'class-schedule-api-v4';
 const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
   'https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@latest/dist/font-face.css',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css',
-  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'
+  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
+  'https://unpkg.com/lenis@1.3.11/dist/lenis.css',
+  'https://unpkg.com/lenis@1.3.11/dist/lenis.min.js'
 ];
 
-// نصب: کش استاتیک + بلافاصله فعال‌سازی
+// نصب: کش استاتیک + بلافاصله فعال‌سازی تا کاربران قدیمی به‌روز شوند
 self.addEventListener('install', event => {
   self.skipWaiting();
   event.waitUntil(
@@ -19,7 +21,7 @@ self.addEventListener('install', event => {
   );
 });
 
-// فعال‌سازی: کنترل همه تب‌ها
+// فعال‌سازی: پاک کردن کش‌های قدیمی و کنترل فوری
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys => {
@@ -69,11 +71,29 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // بقیه: اول کش، بعد شبکه
-  if (event.request.mode === 'navigate' || event.request.destination === 'script' || event.request.destination === 'style') {
+  // صفحهٔ اصلی: اول شبکه (برای به‌روزرسانی کاربران قدیمی)، در صورت خطا از کش
+  if (event.request.mode === 'navigate' && event.request.url.indexOf(self.registration.scope) === 0) {
     event.respondWith(
-      caches.match(event.request)
-        .then(response => response || fetch(event.request))
+      fetch(event.request)
+        .then(function (res) {
+          if (res.ok) {
+            var clone = res.clone();
+            caches.open(CACHE_NAME).then(function (c) { c.put(event.request, clone); });
+          }
+          return res;
+        })
+        .catch(function () {
+          return caches.match(event.request).then(function (cached) {
+            return cached || caches.match('/').then(function (index) { return index || fetch(event.request); });
+          });
+        })
+    );
+    return;
+  }
+  // اسکریپت و استایل: کش سپس شبکه
+  if (event.request.destination === 'script' || event.request.destination === 'style') {
+    event.respondWith(
+      caches.match(event.request).then(r => r || fetch(event.request))
     );
   }
 });
