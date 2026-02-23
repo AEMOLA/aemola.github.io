@@ -363,8 +363,9 @@
         body.season-summer .dynamic-wallpaper .wp-ground-summer { display: block; }
         body.season-autumn .dynamic-wallpaper .wp-ground-autumn { display: block; }
         body.season-winter .dynamic-wallpaper .wp-ground-snow { display: block; }
-        body.theme-night .dynamic-wallpaper .wp-ground { filter: brightness(0.55); }
-        body.theme-night.season-winter .dynamic-wallpaper .wp-ground { filter: brightness(0.65); }
+        /* جلوگیری از مشکلات ترنسپرنت در دسکتاپ: به‌جای filter فقط opacity */
+        body.theme-night .dynamic-wallpaper .wp-ground { opacity: 0.75; }
+        body.theme-night.season-winter .dynamic-wallpaper .wp-ground { opacity: 0.85; }
         /* درخت — چند جا، یکی per فصل */
         .dynamic-wallpaper .wp-tree {
             position: absolute;
@@ -388,10 +389,15 @@
         body.season-summer .dynamic-wallpaper .wp-tree-summer { display: block; }
         body.season-autumn .dynamic-wallpaper .wp-tree-autumn { display: block; }
         body.season-winter .dynamic-wallpaper .wp-tree-winter { display: block; }
-        body.theme-night .dynamic-wallpaper .wp-tree { filter: brightness(0.6); }
         @media (max-width: 768px) {
-            .dynamic-wallpaper .clouds { display: none; }
-            .dynamic-wallpaper .particles { display: none; }
+            /* در موبایل: ابرها در حالت سریع مخفی، در حالت‌های بالاتر فعال */
+            body.quality-fast .dynamic-wallpaper .clouds { display: none; }
+            body.quality-medium .dynamic-wallpaper .clouds,
+            body.quality-high .dynamic-wallpaper .clouds { display: block; }
+            /* در موبایل: در حالت سریع بدون ذرات، در حالت‌های بالاتر ذرات فعال باشند */
+            body.quality-fast .dynamic-wallpaper .particles { display: none; }
+            body.quality-medium .dynamic-wallpaper .particles,
+            body.quality-high .dynamic-wallpaper .particles { display: block; }
             .dynamic-wallpaper .wp-tree-pos1 { right: 4%; width: clamp(48px, 16vw, 72px); }
             .dynamic-wallpaper .wp-tree-pos2 { right: 32%; width: clamp(40px, 12vw, 58px); }
             .dynamic-wallpaper .wp-tree-pos3 { left: 5%; width: clamp(44px, 14vw, 65px); }
@@ -1253,6 +1259,24 @@
             color: var(--color-text);
             font-size: 1rem;
         }
+        .settings-drawer .drawer-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: var(--radius-sm);
+            border: 2px solid color-mix(in srgb, var(--color-gold) 55%, transparent);
+            background: rgba(255,255,255,0.06);
+            color: var(--color-text);
+            text-decoration: none;
+            font-weight: 700;
+            margin-top: 10px;
+        }
+        .settings-drawer .drawer-link:hover {
+            background: var(--color-gold);
+            color: var(--color-surface);
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -1414,6 +1438,10 @@
                     <option value="high">قوی</option>
                 </select>
             </div>
+            <a class="drawer-link" href="/settings.html">
+                <i class="fas fa-eye"></i>
+                <span>پریویو و تنظیمات صحنه</span>
+            </a>
         </div>
     </div>
 
@@ -2063,7 +2091,7 @@
             });
 
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js?v=7').then(() => {
+                navigator.serviceWorker.register('/sw.js?v=8').then(() => {
                     return navigator.serviceWorker.ready;
                 }).then(() => {
                     initApp();
@@ -2079,15 +2107,103 @@
         (function wallpaper() {
             var TEHRAN_OFFSET_MS = 3.5 * 60 * 60 * 1000;
             var QUALITY_KEY = 'wallpaperQuality';
+            var SCENE_KEY = 'sceneConfigV1';
+            var DEFAULT_SCENE = {
+                v: 1,
+                desktop: {
+                    arc: { minY: 18, maxY: 58, minX: 10, maxX: 90 },
+                    clouds: [
+                        { enabled: true, top: 15, right: 8, dur: 140, delay: 0 },
+                        { enabled: true, top: 32, right: 45, dur: 160, delay: -50 },
+                        { enabled: true, top: 22, right: 75, dur: 150, delay: -90 }
+                    ],
+                    trees: {
+                        pos1: { enabled: true, side: 'right', offset: 6 },
+                        pos2: { enabled: true, side: 'right', offset: 34 },
+                        pos3: { enabled: true, side: 'left', offset: 8 }
+                    }
+                },
+                mobile: {
+                    arc: { minY: 16, maxY: 54, minX: 10, maxX: 90 },
+                    clouds: [
+                        { enabled: false, top: 15, right: 8, dur: 160, delay: 0 },
+                        { enabled: false, top: 32, right: 45, dur: 180, delay: -50 },
+                        { enabled: false, top: 22, right: 75, dur: 170, delay: -90 }
+                    ],
+                    trees: {
+                        pos1: { enabled: true, side: 'right', offset: 4 },
+                        pos2: { enabled: false, side: 'right', offset: 32 },
+                        pos3: { enabled: true, side: 'left', offset: 5 }
+                    }
+                }
+            };
             function getQuality() {
                 var q = (typeof localStorage !== 'undefined' && localStorage.getItem(QUALITY_KEY)) || 'fast';
                 return (q === 'medium' || q === 'high') ? q : 'fast';
+            }
+            function getPlatformKey() {
+                return window.innerWidth <= 768 ? 'mobile' : 'desktop';
+            }
+            function getSceneConfig() {
+                try {
+                    var raw = (typeof localStorage !== 'undefined' && localStorage.getItem(SCENE_KEY)) || '';
+                    if (raw) return JSON.parse(raw);
+                } catch (e2) {}
+                return DEFAULT_SCENE;
+            }
+            function getActiveScene() {
+                var cfg = getSceneConfig();
+                var key = getPlatformKey();
+                return (cfg && cfg[key]) ? cfg[key] : DEFAULT_SCENE[key];
             }
             function applyQualityToUI() {
                 var sel = document.getElementById('wallpaperQualitySelect');
                 if (sel) sel.value = getQuality();
                 document.body.classList.remove('quality-fast', 'quality-medium', 'quality-high');
                 document.body.classList.add('quality-' + getQuality());
+            }
+            function applySceneConfig() {
+                var scene = getActiveScene();
+                if (!scene) return;
+
+                // Clouds
+                try {
+                    var c1 = document.querySelector('.dynamic-wallpaper .wp-cloud-1');
+                    var c2 = document.querySelector('.dynamic-wallpaper .wp-cloud-2');
+                    var c3 = document.querySelector('.dynamic-wallpaper .wp-cloud-3');
+                    var clouds = [c1, c2, c3];
+                    (scene.clouds || []).forEach(function (c, idx) {
+                        var el = clouds[idx];
+                        if (!el) return;
+                        var enabled = !!c.enabled;
+                        // cloud3 only when quality=high (unless disabled)
+                        if (idx === 2 && getQuality() !== 'high') enabled = false;
+                        el.style.display = enabled ? '' : 'none';
+                        if (typeof c.top === 'number') el.style.top = c.top + '%';
+                        if (typeof c.right === 'number') el.style.right = c.right + '%';
+                        if (typeof c.dur === 'number') el.style.animationDuration = c.dur + 's';
+                        if (typeof c.delay === 'number') el.style.animationDelay = c.delay + 's';
+                    });
+                } catch (e) {}
+
+                // Trees
+                try {
+                    var t = scene.trees || {};
+                    ['pos1', 'pos2', 'pos3'].forEach(function (pos) {
+                        var rules = t[pos] || { enabled: true, side: 'right', offset: 10 };
+                        var nodes = document.querySelectorAll('.dynamic-wallpaper .wp-tree-' + pos);
+                        nodes.forEach(function (node) {
+                            node.style.display = rules.enabled ? '' : 'none';
+                            if (rules.side === 'left') {
+                                node.style.left = (typeof rules.offset === 'number' ? rules.offset : 8) + '%';
+                                node.style.right = '';
+                            } else {
+                                node.style.right = (typeof rules.offset === 'number' ? rules.offset : 8) + '%';
+                                node.style.left = '';
+                            }
+                        });
+                    });
+                } catch (e2) {}
             }
             function getTehranNow() {
                 return new Date(Date.now() + TEHRAN_OFFSET_MS);
@@ -2100,12 +2216,17 @@
                 var moonEl = document.getElementById('wallpaperMoon');
                 if (!sunEl || !moonEl) return;
                 var isDay = hour >= 6 && hour < 18;
-                var arcMinY = 18;
-                var arcMaxY = 58;
+                var scene = getActiveScene();
+                var arc = (scene && scene.arc) ? scene.arc : DEFAULT_SCENE[getPlatformKey()].arc;
+                var arcMinY = typeof arc.minY === 'number' ? arc.minY : 18;
+                var arcMaxY = typeof arc.maxY === 'number' ? arc.maxY : 58;
+                var arcMinX = typeof arc.minX === 'number' ? arc.minX : 10;
+                var arcMaxX = typeof arc.maxX === 'number' ? arc.maxX : 90;
                 var arcRange = arcMaxY - arcMinY;
+                var xRange = arcMaxX - arcMinX;
                 if (isDay) {
                     var progress = Math.max(0, Math.min(1, (totalMinutes - 6 * 60) / (12 * 60)));
-                    var x = 10 + progress * 80;
+                    var x = arcMinX + progress * xRange;
                     var y = arcMaxY - Math.sin(progress * Math.PI) * arcRange;
                     sunEl.style.right = x + '%';
                     sunEl.style.top = y + '%';
@@ -2116,7 +2237,7 @@
                     var nightEnd = 30 * 60;
                     var currentInNight = totalMinutes >= nightStart ? totalMinutes - nightStart : (24 * 60 - nightStart) + totalMinutes;
                     var progress = Math.max(0, Math.min(1, currentInNight / (nightEnd - nightStart)));
-                    var x = 10 + progress * 80;
+                    var x = arcMinX + progress * xRange;
                     var y = arcMaxY - Math.sin(progress * Math.PI) * arcRange;
                     moonEl.style.right = x + '%';
                     moonEl.style.top = y + '%';
@@ -2206,6 +2327,7 @@
                 try { localStorage.setItem(QUALITY_KEY, val); } catch (e) {}
                 document.body.classList.remove('quality-fast', 'quality-medium', 'quality-high');
                 document.body.classList.add('quality-' + val);
+                applySceneConfig();
                 createStars();
                 createParticles();
             }
@@ -2214,11 +2336,16 @@
                 var sel = document.getElementById('wallpaperQualitySelect');
                 if (sel) sel.addEventListener('change', onQualityChange);
                 updateTheme();
+                applySceneConfig();
                 createStars();
                 createParticles();
                 updateSunMoonPosition();
                 setInterval(updateTheme, 60000);
             }
+            window.wallpaperApplyScene = function () {
+                applySceneConfig();
+                updateSunMoonPosition();
+            };
             if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
             else init();
         })();
