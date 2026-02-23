@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>پریویو و تنظیمات صحنه</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@latest/dist/font-face.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    :root{
+      --gold:#d4af37;
+      --bg:#0b0b12;
+      --panel: rgba(20,20,30,0.92);
+      --text:#f1f1f6;
+      --muted:#b6b6c6;
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:'Vazir','Tahoma',sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      padding:14px;
+    }
+    a{color:inherit}
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .topbar .title{
+      display:flex; align-items:center; gap:10px;
+      font-weight:900;
+      color: var(--gold);
+    }
+    .btn{
+      border:2px solid var(--gold);
+      background:transparent;
+      color:var(--gold);
+      padding:10px 12px;
+      border-radius:999px;
+      cursor:pointer;
+      font-weight:800;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      text-decoration:none;
+    }
+    .btn.primary{ background: var(--gold); color:#141414; }
+    .btn:disabled{ opacity:0.6; cursor:not-allowed; }
+
+    .layout{
+      display:grid;
+      grid-template-columns: 1fr 360px;
+      gap:14px;
+      align-items:start;
+    }
+    @media (max-width: 980px){
+      .layout{ grid-template-columns: 1fr; }
+    }
+
+    .preview-frame{
+      position:relative;
+      width: min(1100px, 100%);
+      height: min(70vh, 760px);
+      margin:0 auto;
+      border-radius: 24px;
+      overflow:hidden;
+      border: 2px solid rgba(212,175,55,0.45);
+      box-shadow: 0 18px 50px rgba(0,0,0,0.35);
+      background: #0a0a12;
+    }
+    .preview-frame.mobile{
+      width: 390px;
+      height: 844px;
+      max-width: 100%;
+    }
+
+    /* --- WALLPAPER (same structure as index) --- */
+    .dynamic-wallpaper{
+      position:absolute;
+      inset:0;
+      overflow:hidden;
+      pointer-events:none;
+      contain: layout style paint;
+    }
+    .dynamic-wallpaper .sky{
+      position:absolute;
+      inset:0;
+      transition: background 0.6s ease;
+    }
+    .dynamic-wallpaper::after{
+      content:'';
+      position:absolute;
+      inset:0;
+      opacity:0;
+      transition: opacity 0.6s ease;
+      background: radial-gradient(ellipse 150% 80% at bottom, rgba(0,0,0,0.25) 0%, transparent 70%);
+      pointer-events:none;
+    }
+    body.theme-night .dynamic-wallpaper::after{ opacity:1; }
+
+    /* sky gradients (compact but consistent) */
+    body.theme-day .dynamic-wallpaper .sky{
+      background:
+        radial-gradient(ellipse 120% 60% at top, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.2) 30%, transparent 60%),
+        linear-gradient(180deg, #87ceeb 0%, #b8e0f0 40%, #f5e6c8 80%, #d4af37 100%);
+    }
+    body.theme-day.season-spring .dynamic-wallpaper .sky{ background: linear-gradient(180deg, #a8d5e8 0%, #e8f4f8 60%, #a8d080 100%); }
+    body.theme-day.season-summer .dynamic-wallpaper .sky{ background: linear-gradient(180deg, #87ceeb 0%, #ffd8a0 50%, #e65100 100%); }
+    body.theme-day.season-autumn .dynamic-wallpaper .sky{ background: linear-gradient(180deg, #a8c8e8 0%, #ff7043 75%, #d84315 100%); }
+    body.theme-day.season-winter .dynamic-wallpaper .sky{ background: linear-gradient(180deg, #b0d0e8 0%, #f0f4f8 70%, #c0c8d8 100%); }
+
+    body.theme-night .dynamic-wallpaper .sky{
+      background:
+        radial-gradient(ellipse 100% 50% at 30% 20%, rgba(150,200,255,0.18) 0%, transparent 70%),
+        linear-gradient(180deg, #0a0a1a 0%, #16213e 55%, #0a0a1a 100%);
+    }
+    body.theme-night.season-winter .dynamic-wallpaper .sky{ background: linear-gradient(180deg, #0a0a1a 0%, #1e2e50 55%, #0a0a1a 100%); }
+    body.theme-night.season-spring .dynamic-wallpaper .sky{ background: linear-gradient(180deg, #0a0a1a 0%, #1e3a2e 55%, #0a0a1a 100%); }
+    body.theme-night.season-summer .dynamic-wallpaper .sky{ background: linear-gradient(180deg, #0a0a1a 0%, #3a2515 55%, #0a0a1a 100%); }
+    body.theme-night.season-autumn .dynamic-wallpaper .sky{ background: linear-gradient(180deg, #0a0a1a 0%, #3a2518 55%, #0a0a1a 100%); }
+
+    .dynamic-wallpaper .wp-sun,
+    .dynamic-wallpaper .wp-moon{
+      position:absolute;
+      width: clamp(52px, 8vw, 80px);
+      height:auto;
+      opacity:0;
+      transition: opacity .6s ease;
+      transform: translate(-50%, -50%);
+      z-index:4;
+    }
+    .dynamic-wallpaper .wp-moon{ width: clamp(40px, 6vw, 58px); }
+    body.theme-day .dynamic-wallpaper .wp-sun{ opacity:1; }
+    body.theme-night .dynamic-wallpaper .wp-moon{ opacity:1; }
+
+    .dynamic-wallpaper .clouds{ position:absolute; inset:0; z-index:5; opacity:0; transition: opacity .6s ease; }
+    body.theme-day .dynamic-wallpaper .clouds{ opacity:1; }
+    .dynamic-wallpaper .wp-cloud{
+      position:absolute;
+      width: clamp(90px, 18vw, 160px);
+      height:auto;
+      will-change: transform;
+      animation: cloudDrift 140s linear infinite;
+    }
+    @keyframes cloudDrift{ from{ transform: translateX(0);} to{ transform: translateX(-120vw);} }
+
+    .dynamic-wallpaper .stars{ position:absolute; inset:0; z-index:3; opacity:0; transition: opacity .6s ease; }
+    body.theme-night .dynamic-wallpaper .stars{ opacity:1; }
+    .dynamic-wallpaper .star{ position:absolute; width:2px; height:2px; background:#fff; border-radius:50%; opacity:.7; }
+
+    .dynamic-wallpaper .particles{ position:absolute; inset:0; z-index:3; overflow:hidden; }
+    .dynamic-wallpaper .particle{ position:absolute; will-change: transform; }
+
+    .dynamic-wallpaper .wp-ground{
+      position:absolute; left:0; right:0; bottom:0;
+      width:100%; height:30vh;
+      object-fit:cover; object-position:bottom;
+      z-index:2;
+      display:none;
+    }
+    .dynamic-wallpaper .wp-tree{
+      position:absolute; bottom:0;
+      max-height:32vh;
+      height:auto;
+      object-fit:contain;
+      z-index:3;
+      display:none;
+    }
+
+    /* controls panel */
+    .panel{
+      background: var(--panel);
+      border: 2px solid rgba(212,175,55,0.45);
+      border-radius: var(--radius);
+      padding: 14px;
+    }
+    .panel h3{
+      margin:0 0 10px;
+      color: var(--gold);
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:10px;
+    }
+    .row{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    label{ font-weight:800; font-size:.92rem; color: var(--text); }
+    input, select{
+      width:100%;
+      padding:10px 12px;
+      border-radius: 12px;
+      border: 2px solid rgba(212,175,55,0.45);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      outline:none;
+    }
+    .hint{ color: var(--muted); font-size:.85rem; line-height:1.5; }
+    .divider{ height:1px; background: rgba(255,255,255,0.12); margin:10px 0; }
+    .admin-badge{ display:inline-flex; gap:8px; align-items:center; font-weight:900; color:#141414; background: var(--gold); padding:6px 10px; border-radius:999px; }
+  </style>
+</head>
+<body class="theme-day season-summer">
+  <div class="topbar">
+    <div class="title"><i class="fas fa-eye"></i> پریویو و تنظیمات صحنه</div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <a class="btn" href="/"><i class="fas fa-arrow-right"></i> برگشت به سایت</a>
+      <button class="btn" id="toggleMobile"><i class="fas fa-mobile-alt"></i> حالت موبایل</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="preview-frame" id="previewFrame" aria-label="پریویو">
+      <div class="dynamic-wallpaper" id="dynamicWallpaper" aria-hidden="true">
+        <div class="sky"></div>
+        <img src="/icons/sun.svg" alt="" class="wp-sun" id="wallpaperSun">
+        <img src="/icons/moon.svg" alt="" class="wp-moon" id="wallpaperMoon">
+        <div class="clouds" aria-hidden="true">
+          <img src="/icons/cloud.svg" alt="" class="wp-cloud wp-cloud-1">
+          <img src="/icons/cloud.svg" alt="" class="wp-cloud wp-cloud-2">
+          <img src="/icons/cloud.svg" alt="" class="wp-cloud wp-cloud-3">
+        </div>
+        <div class="stars" id="starsContainer"></div>
+        <div class="particles" id="particlesContainer"></div>
+
+        <img src="/icons/ground-spring.svg" alt="" class="wp-ground wp-ground-spring">
+        <img src="/icons/ground-summer.svg" alt="" class="wp-ground wp-ground-summer">
+        <img src="/icons/ground-autumn.svg" alt="" class="wp-ground wp-ground-autumn">
+        <img src="/icons/ground-snow.svg" alt="" class="wp-ground wp-ground-snow">
+
+        <img src="/icons/tree-spring.svg" alt="" class="wp-tree wp-tree-pos1 wp-tree-spring">
+        <img src="/icons/tree-summer.svg" alt="" class="wp-tree wp-tree-pos1 wp-tree-summer">
+        <img src="/icons/tree-autumn.svg" alt="" class="wp-tree wp-tree-pos1 wp-tree-autumn">
+        <img src="/icons/tree-winter.svg" alt="" class="wp-tree wp-tree-pos1 wp-tree-winter">
+
+        <img src="/icons/tree-spring.svg" alt="" class="wp-tree wp-tree-pos2 wp-tree-spring">
+        <img src="/icons/tree-summer.svg" alt="" class="wp-tree wp-tree-pos2 wp-tree-summer">
+        <img src="/icons/tree-autumn.svg" alt="" class="wp-tree wp-tree-pos2 wp-tree-autumn">
+        <img src="/icons/tree-winter.svg" alt="" class="wp-tree wp-tree-pos2 wp-tree-winter">
+
+        <img src="/icons/tree-spring.svg" alt="" class="wp-tree wp-tree-pos3 wp-tree-spring">
+        <img src="/icons/tree-summer.svg" alt="" class="wp-tree wp-tree-pos3 wp-tree-summer">
+        <img src="/icons/tree-autumn.svg" alt="" class="wp-tree wp-tree-pos3 wp-tree-autumn">
+        <img src="/icons/tree-winter.svg" alt="" class="wp-tree wp-tree-pos3 wp-tree-winter">
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3><i class="fas fa-sliders-h"></i> کنترل‌ها</h3>
+      <div class="grid">
+        <div class="row">
+          <div>
+            <label>کیفیت</label>
+            <select id="qualitySelect">
+              <option value="fast">سریع</option>
+              <option value="medium">متوسط</option>
+              <option value="high">قوی</option>
+            </select>
+          </div>
+          <div>
+            <label>پلتفرمِ تنظیمات</label>
+            <select id="platformSelect">
+              <option value="desktop">ویندوز/دسکتاپ</option>
+              <option value="mobile">موبایل</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>تم</label>
+            <select id="themeSelect">
+              <option value="auto">خودکار</option>
+              <option value="day">روز</option>
+              <option value="night">شب</option>
+            </select>
+          </div>
+          <div>
+            <label>فصل</label>
+            <select id="seasonSelect">
+              <option value="auto">خودکار</option>
+              <option value="spring">بهار</option>
+              <option value="summer">تابستان</option>
+              <option value="autumn">پاییز</option>
+              <option value="winter">زمستان</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="hint">ادمین اگر لاگین باشد می‌تواند تغییرات صحنه را ذخیره کند و برای همه کاربران اعمال شود.</div>
+
+        <div id="adminBox" style="display:block;">
+          <div style="margin:10px 0;">
+            <span class="admin-badge"><i class="fas fa-sliders-h"></i> ادیت صحنه (ذخیره روی همین دستگاه)</span>
+          </div>
+          <div class="row">
+            <div>
+              <label>Arc MinY (بالا)</label>
+              <input id="arcMinY" type="number" min="0" max="60" step="1" />
+            </div>
+            <div>
+              <label>Arc MaxY (پایین)</label>
+              <input id="arcMaxY" type="number" min="10" max="90" step="1" />
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label>Arc MinX</label>
+              <input id="arcMinX" type="number" min="0" max="50" step="1" />
+            </div>
+            <div>
+              <label>Arc MaxX</label>
+              <input id="arcMaxX" type="number" min="50" max="100" step="1" />
+            </div>
+          </div>
+          <div class="divider"></div>
+
+          <div class="hint">درخت‌ها (pos1/pos2/pos3): روشن/خاموش + سمت + فاصله (٪)</div>
+          <div class="row">
+            <div>
+              <label>Tree pos1</label>
+              <select id="t1Side">
+                <option value="right">راست</option>
+                <option value="left">چپ</option>
+              </select>
+              <input id="t1Off" type="number" min="0" max="90" step="1" />
+              <label style="display:flex; gap:8px; align-items:center; margin-top:8px;">
+                <input id="t1En" type="checkbox" style="width:auto;"> فعال
+              </label>
+            </div>
+            <div>
+              <label>Tree pos2</label>
+              <select id="t2Side">
+                <option value="right">راست</option>
+                <option value="left">چپ</option>
+              </select>
+              <input id="t2Off" type="number" min="0" max="90" step="1" />
+              <label style="display:flex; gap:8px; align-items:center; margin-top:8px;">
+                <input id="t2En" type="checkbox" style="width:auto;"> فعال
+              </label>
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label>Tree pos3</label>
+              <select id="t3Side">
+                <option value="left">چپ</option>
+                <option value="right">راست</option>
+              </select>
+              <input id="t3Off" type="number" min="0" max="90" step="1" />
+              <label style="display:flex; gap:8px; align-items:center; margin-top:8px;">
+                <input id="t3En" type="checkbox" style="width:auto;"> فعال
+              </label>
+            </div>
+            <div>
+              <label>Cloud3 فقط در کیفیت قوی</label>
+              <div class="hint">برای فعال شدن، کیفیت را روی «قوی» بگذارید.</div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+          <div class="hint">ابرها: روشن/خاموش + top/right (٪) + مدت انیمیشن (ثانیه) + delay</div>
+          <div class="row">
+            <div>
+              <label>Cloud 1</label>
+              <div class="row">
+                <input id="c1Top" type="number" min="0" max="90" step="1" placeholder="top%">
+                <input id="c1Right" type="number" min="0" max="100" step="1" placeholder="right%">
+              </div>
+              <div class="row" style="margin-top:8px;">
+                <input id="c1Dur" type="number" min="20" max="400" step="1" placeholder="dur(s)">
+                <input id="c1Delay" type="number" min="-400" max="0" step="1" placeholder="delay(s)">
+              </div>
+              <label style="display:flex; gap:8px; align-items:center; margin-top:8px;">
+                <input id="c1En" type="checkbox" style="width:auto;"> فعال
+              </label>
+            </div>
+            <div>
+              <label>Cloud 2</label>
+              <div class="row">
+                <input id="c2Top" type="number" min="0" max="90" step="1" placeholder="top%">
+                <input id="c2Right" type="number" min="0" max="100" step="1" placeholder="right%">
+              </div>
+              <div class="row" style="margin-top:8px;">
+                <input id="c2Dur" type="number" min="20" max="400" step="1" placeholder="dur(s)">
+                <input id="c2Delay" type="number" min="-400" max="0" step="1" placeholder="delay(s)">
+              </div>
+              <label style="display:flex; gap:8px; align-items:center; margin-top:8px;">
+                <input id="c2En" type="checkbox" style="width:auto;"> فعال
+              </label>
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label>Cloud 3</label>
+              <div class="row">
+                <input id="c3Top" type="number" min="0" max="90" step="1" placeholder="top%">
+                <input id="c3Right" type="number" min="0" max="100" step="1" placeholder="right%">
+              </div>
+              <div class="row" style="margin-top:8px;">
+                <input id="c3Dur" type="number" min="20" max="400" step="1" placeholder="dur(s)">
+                <input id="c3Delay" type="number" min="-400" max="0" step="1" placeholder="delay(s)">
+              </div>
+              <label style="display:flex; gap:8px; align-items:center; margin-top:8px;">
+                <input id="c3En" type="checkbox" style="width:auto;"> فعال
+              </label>
+            </div>
+            <div></div>
+          </div>
+
+          <div class="divider"></div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn" id="saveLocal"><i class="fas fa-save"></i> ذخیره روی همین دستگاه</button>
+            <button class="btn" id="reset"><i class="fas fa-undo"></i> ریست</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const QUALITY_KEY = 'wallpaperQuality';
+      const SCENE_KEY = 'sceneConfigV1';
+      const DEFAULT_SCENE = {
+        v: 1,
+        desktop: {
+          arc: { minY: 18, maxY: 58, minX: 10, maxX: 90 },
+          clouds: [
+            { enabled: true, top: 15, right: 8, dur: 140, delay: 0 },
+            { enabled: true, top: 32, right: 45, dur: 160, delay: -50 },
+            { enabled: true, top: 22, right: 75, dur: 150, delay: -90 }
+          ],
+          trees: {
+            pos1: { enabled: true, side: 'right', offset: 6 },
+            pos2: { enabled: true, side: 'right', offset: 34 },
+            pos3: { enabled: true, side: 'left', offset: 8 }
+          }
+        },
+        mobile: {
+          arc: { minY: 16, maxY: 54, minX: 10, maxX: 90 },
+          clouds: [
+            { enabled: false, top: 15, right: 8, dur: 160, delay: 0 },
+            { enabled: false, top: 32, right: 45, dur: 180, delay: -50 },
+            { enabled: false, top: 22, right: 75, dur: 170, delay: -90 }
+          ],
+          trees: {
+            pos1: { enabled: true, side: 'right', offset: 4 },
+            pos2: { enabled: false, side: 'right', offset: 32 },
+            pos3: { enabled: true, side: 'left', offset: 5 }
+          }
+        }
+      };
+
+      const frame = document.getElementById('previewFrame');
+      const toggleMobile = document.getElementById('toggleMobile');
+      toggleMobile.addEventListener('click', () => frame.classList.toggle('mobile'));
+
+      function getQuality(){ try{ const q=localStorage.getItem(QUALITY_KEY)||'fast'; return (q==='medium'||q==='high')?q:'fast'; }catch(e){ return 'fast'; } }
+      function setQuality(q){ try{ localStorage.setItem(QUALITY_KEY,q); }catch(e){} }
+
+      function loadScene() {
+        try {
+          const raw = localStorage.getItem(SCENE_KEY);
+          if (raw) return JSON.parse(raw);
+        } catch (e) {}
+        return DEFAULT_SCENE;
+      }
+      function saveSceneLocal(cfg){
+        try{ localStorage.setItem(SCENE_KEY, JSON.stringify(cfg)); }catch(e){}
+      }
+
+      function applySeasonAssets() {
+        const b = document.body;
+        document.querySelectorAll('.wp-ground').forEach(el => el.style.display = 'none');
+        if (b.classList.contains('season-spring')) document.querySelector('.wp-ground-spring').style.display='block';
+        else if (b.classList.contains('season-summer')) document.querySelector('.wp-ground-summer').style.display='block';
+        else if (b.classList.contains('season-autumn')) document.querySelector('.wp-ground-autumn').style.display='block';
+        else document.querySelector('.wp-ground-snow').style.display='block';
+
+        document.querySelectorAll('.wp-tree').forEach(el => el.style.display = 'none');
+        const season = b.classList.contains('season-spring')?'spring':b.classList.contains('season-summer')?'summer':b.classList.contains('season-autumn')?'autumn':'winter';
+        document.querySelectorAll('.wp-tree-' + season).forEach(el => el.style.display = 'block');
+      }
+
+      function applySceneToPreview(cfg, platformKey) {
+        const sc = (cfg && cfg[platformKey]) ? cfg[platformKey] : DEFAULT_SCENE[platformKey];
+        const arc = sc.arc || DEFAULT_SCENE[platformKey].arc;
+        // set inputs
+        document.getElementById('arcMinY').value = arc.minY;
+        document.getElementById('arcMaxY').value = arc.maxY;
+        document.getElementById('arcMinX').value = arc.minX;
+        document.getElementById('arcMaxX').value = arc.maxX;
+        const clouds = sc.clouds || DEFAULT_SCENE[platformKey].clouds;
+        const cloudEls = [
+          document.querySelector('.wp-cloud-1'),
+          document.querySelector('.wp-cloud-2'),
+          document.querySelector('.wp-cloud-3')
+        ];
+        clouds.forEach((c, idx) => {
+          const el = cloudEls[idx];
+          if (!el) return;
+          document.getElementById(`c${idx+1}Top`).value = c.top;
+          document.getElementById(`c${idx+1}Right`).value = c.right;
+          document.getElementById(`c${idx+1}Dur`).value = c.dur;
+          document.getElementById(`c${idx+1}Delay`).value = c.delay;
+          document.getElementById(`c${idx+1}En`).checked = !!c.enabled;
+          el.style.top = c.top + '%';
+          el.style.right = c.right + '%';
+          el.style.animationDuration = c.dur + 's';
+          el.style.animationDelay = c.delay + 's';
+          // cloud3 only in quality=high
+          const q = getQuality();
+          const enabled = !!c.enabled && !(idx === 2 && q !== 'high');
+          el.style.display = enabled ? '' : 'none';
+        });
+        const trees = sc.trees || DEFAULT_SCENE[platformKey].trees;
+        [['pos1','t1'],['pos2','t2'],['pos3','t3']].forEach(([pos,p])=>{
+          const t = trees[pos] || {enabled:true,side:'right',offset:10};
+          document.getElementById(p+'Side').value = t.side;
+          document.getElementById(p+'Off').value = t.offset;
+          document.getElementById(p+'En').checked = !!t.enabled;
+          document.querySelectorAll('.wp-tree-'+pos).forEach(node=>{
+            node.style.display = t.enabled ? '' : 'none';
+            if (t.side==='left'){ node.style.left = t.offset+'%'; node.style.right=''; }
+            else { node.style.right = t.offset+'%'; node.style.left=''; }
+          });
+        });
+      }
+
+      function setThemeSeason(theme, season){
+        const now = new Date(Date.now() + 3.5*60*60*1000);
+        const autoTheme = (now.getUTCHours()<6 || now.getUTCHours()>=18) ? 'night' : 'day';
+        const m = now.getUTCMonth();
+        const autoSeason = (m>=11 || m<=1) ? 'winter' : (m>=2 && m<=4) ? 'spring' : (m>=5 && m<=7) ? 'summer' : 'autumn';
+        const t = theme==='auto'?autoTheme:theme;
+        const s = season==='auto'?autoSeason:season;
+        document.body.classList.toggle('theme-day', t==='day');
+        document.body.classList.toggle('theme-night', t==='night');
+        document.body.classList.remove('season-winter','season-spring','season-summer','season-autumn');
+        document.body.classList.add('season-'+s);
+        applySeasonAssets();
+      }
+
+      function updateSunMoonPosition(cfg, platformKey){
+        const now = new Date(Date.now() + 3.5*60*60*1000);
+        const hour = now.getUTCHours();
+        const totalMinutes = hour*60 + now.getUTCMinutes();
+        const sunEl = document.getElementById('wallpaperSun');
+        const moonEl = document.getElementById('wallpaperMoon');
+        const isDay = hour>=6 && hour<18;
+        const sc = (cfg && cfg[platformKey]) ? cfg[platformKey] : DEFAULT_SCENE[platformKey];
+        const arc = sc.arc || DEFAULT_SCENE[platformKey].arc;
+        const arcRange = arc.maxY - arc.minY;
+        const xRange = arc.maxX - arc.minX;
+        if (isDay){
+          const progress = Math.max(0, Math.min(1, (totalMinutes-6*60)/(12*60)));
+          const x = arc.minX + progress*xRange;
+          const y = arc.maxY - Math.sin(progress*Math.PI)*arcRange;
+          sunEl.style.right = x+'%'; sunEl.style.top = y+'%'; sunEl.style.transform='translate(-50%,-50%)';
+        } else {
+          const nightStart=18*60, nightEnd=30*60;
+          const cur = totalMinutes>=nightStart ? totalMinutes-nightStart : (24*60-nightStart)+totalMinutes;
+          const progress = Math.max(0, Math.min(1, cur/(nightEnd-nightStart)));
+          const x = arc.minX + progress*xRange;
+          const y = arc.maxY - Math.sin(progress*Math.PI)*arcRange;
+          moonEl.style.right = x+'%'; moonEl.style.top = y+'%'; moonEl.style.transform='translate(-50%,-50%)';
+        }
+      }
+
+      // stars (simple)
+      function createStars(){
+        const el = document.getElementById('starsContainer');
+        el.innerHTML='';
+        const q = getQuality();
+        const count = q==='fast'?18:q==='medium'?40:70;
+        for(let i=0;i<count;i++){
+          const s=document.createElement('div');
+          s.className='star';
+          s.style.left = (Math.random()*100)+'%';
+          s.style.top = (Math.random()*65)+'%';
+          s.style.opacity = (0.25+Math.random()*0.75).toFixed(2);
+          el.appendChild(s);
+        }
+      }
+
+      function bindControls(){
+        const qualitySelect = document.getElementById('qualitySelect');
+        const platformSelect = document.getElementById('platformSelect');
+        const themeSelect = document.getElementById('themeSelect');
+        const seasonSelect = document.getElementById('seasonSelect');
+
+        qualitySelect.value = getQuality();
+        qualitySelect.addEventListener('change', ()=>{
+          setQuality(qualitySelect.value);
+          createStars();
+          const cfg = loadScene();
+          applySceneToPreview(cfg, platformSelect.value);
+          updateSunMoonPosition(cfg, platformSelect.value);
+        });
+        themeSelect.addEventListener('change', ()=> setThemeSeason(themeSelect.value, seasonSelect.value));
+        seasonSelect.addEventListener('change', ()=> setThemeSeason(themeSelect.value, seasonSelect.value));
+        platformSelect.addEventListener('change', ()=> {
+          const cfg = loadScene();
+          applySceneToPreview(cfg, platformSelect.value);
+          updateSunMoonPosition(cfg, platformSelect.value);
+        });
+      }
+
+      // نسخهٔ «محلی» (localStorage) — بدون ذخیرهٔ جهانی روی دیتابیس
+
+      function readEditorIntoConfig(cfg, platformKey){
+        cfg = cfg || loadScene();
+        cfg[platformKey] = cfg[platformKey] || {};
+        cfg[platformKey].arc = {
+          minY: parseInt(document.getElementById('arcMinY').value||'18',10),
+          maxY: parseInt(document.getElementById('arcMaxY').value||'58',10),
+          minX: parseInt(document.getElementById('arcMinX').value||'10',10),
+          maxX: parseInt(document.getElementById('arcMaxX').value||'90',10),
+        };
+        cfg[platformKey].clouds = [
+          {
+            enabled: !!document.getElementById('c1En').checked,
+            top: parseInt(document.getElementById('c1Top').value||'15',10),
+            right: parseInt(document.getElementById('c1Right').value||'8',10),
+            dur: parseInt(document.getElementById('c1Dur').value||'140',10),
+            delay: parseInt(document.getElementById('c1Delay').value||'0',10),
+          },
+          {
+            enabled: !!document.getElementById('c2En').checked,
+            top: parseInt(document.getElementById('c2Top').value||'32',10),
+            right: parseInt(document.getElementById('c2Right').value||'45',10),
+            dur: parseInt(document.getElementById('c2Dur').value||'160',10),
+            delay: parseInt(document.getElementById('c2Delay').value||'-50',10),
+          },
+          {
+            enabled: !!document.getElementById('c3En').checked,
+            top: parseInt(document.getElementById('c3Top').value||'22',10),
+            right: parseInt(document.getElementById('c3Right').value||'75',10),
+            dur: parseInt(document.getElementById('c3Dur').value||'150',10),
+            delay: parseInt(document.getElementById('c3Delay').value||'-90',10),
+          }
+        ];
+        cfg[platformKey].trees = cfg[platformKey].trees || {};
+        [['pos1','t1'],['pos2','t2'],['pos3','t3']].forEach(([pos,p])=>{
+          cfg[platformKey].trees[pos] = {
+            enabled: !!document.getElementById(p+'En').checked,
+            side: document.getElementById(p+'Side').value === 'left' ? 'left' : 'right',
+            offset: parseInt(document.getElementById(p+'Off').value||'8',10)
+          };
+        });
+        return cfg;
+      }
+
+      async function wireAdminButtons(){
+        const saveLocal = document.getElementById('saveLocal');
+        const reset = document.getElementById('reset');
+        const platformSelect = document.getElementById('platformSelect');
+
+        if (saveLocal) saveLocal.addEventListener('click', ()=>{
+          const cfg = readEditorIntoConfig(loadScene(), platformSelect.value);
+          saveSceneLocal(cfg);
+          applySceneToPreview(cfg, platformSelect.value);
+          updateSunMoonPosition(cfg, platformSelect.value);
+        });
+        if (reset) reset.addEventListener('click', ()=>{
+          saveSceneLocal(DEFAULT_SCENE);
+          applySceneToPreview(DEFAULT_SCENE, platformSelect.value);
+          updateSunMoonPosition(DEFAULT_SCENE, platformSelect.value);
+        });
+      }
+
+      async function init(){
+        bindControls();
+        await wireAdminButtons();
+
+        const cfg = loadScene();
+        const platformKey = document.getElementById('platformSelect').value;
+        setThemeSeason('auto','auto');
+        applySeasonAssets();
+        applySceneToPreview(cfg, platformKey);
+        createStars();
+        updateSunMoonPosition(cfg, platformKey);
+        setInterval(()=> updateSunMoonPosition(loadScene(), document.getElementById('platformSelect').value), 30000);
+      }
+      init();
+    })();
+  </script>
+</body>
+</html>
+
