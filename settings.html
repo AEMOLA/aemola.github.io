@@ -676,6 +676,76 @@
         }
       }
 
+      // درگ مستقیم آبجکت‌ها (ابر و درخت) با ماوس
+      function setupDragHandles(){
+        const frame = document.getElementById('previewFrame');
+        if (!frame) return;
+        let dragState = null;
+
+        function onMove(e){
+          if (!dragState) return;
+          const rect = frame.getBoundingClientRect();
+          const xPct = ((e.clientX - rect.left) / rect.width) * 100;
+          const yPct = ((e.clientY - rect.top) / rect.height) * 100;
+          const x = Math.max(0, Math.min(100, xPct));
+          const y = Math.max(0, Math.min(100, yPct));
+          dragState.apply(x, y);
+        }
+        function onUp(){
+          dragState = null;
+          document.removeEventListener('pointermove', onMove);
+          document.removeEventListener('pointerup', onUp);
+        }
+
+        function startDragFor(el, kind, id){
+          return function (e){
+            e.preventDefault();
+            e.stopPropagation();
+            document.addEventListener('pointermove', onMove);
+            document.addEventListener('pointerup', onUp);
+            if (kind === 'cloud'){
+              dragState = {
+                apply(x, y){
+                  el.style.top = y + '%';
+                  el.style.right = (100 - x) + '%';
+                  const topInput = document.getElementById('c'+id+'Top');
+                  const rightInput = document.getElementById('c'+id+'Right');
+                  if (topInput) topInput.value = Math.round(y);
+                  if (rightInput) rightInput.value = Math.round(100 - x);
+                }
+              };
+            } else if (kind === 'tree'){
+              dragState = {
+                apply(x, y){
+                  const sideEl = document.getElementById('t'+id+'Side');
+                  const offEl = document.getElementById('t'+id+'Off');
+                  const side = sideEl ? sideEl.value : 'right';
+                  if (side === 'left'){
+                    el.style.left = x + '%';
+                    el.style.right = '';
+                    if (offEl) offEl.value = Math.round(x);
+                  } else {
+                    el.style.right = (100 - x) + '%';
+                    el.style.left = '';
+                    if (offEl) offEl.value = Math.round(100 - x);
+                  }
+                }
+              };
+            }
+          };
+        }
+
+        // ابرها
+        ['1','2','3'].forEach(n=>{
+          const cloud = document.querySelector('.wp-cloud-'+n);
+          if (cloud) cloud.addEventListener('pointerdown', startDragFor(cloud, 'cloud', n));
+        });
+        // درخت‌ها – از نسخه تابستانی به‌عنوان هندل استفاده می‌کنیم
+        ['1','2','3'].forEach(n=>{
+          const tree = document.querySelector('.wp-tree-pos'+n+'.wp-tree-summer');
+          if (tree) tree.addEventListener('pointerdown', startDragFor(tree, 'tree', n));
+        });
+      }
       function bindControls(){
         const qualitySelect = document.getElementById('qualitySelect');
         const platformSelect = document.getElementById('platformSelect');
@@ -837,6 +907,7 @@
           updateArcPreview(mNow);
         }
         updateSunMoonPosition(cfg, platformKey);
+         setupDragHandles();
         setInterval(()=> updateSunMoonPosition(loadScene(), document.getElementById('platformSelect').value), 30000);
       }
       init();
