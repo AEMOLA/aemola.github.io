@@ -1,8 +1,9 @@
-const CACHE_NAME = 'class-schedule-v7';
+const CACHE_NAME = 'class-schedule-v8';
 const API_CACHE = 'class-schedule-api-v4';
 const urlsToCache = [
   '/',
   '/index.html',
+  '/settings.html',
   '/manifest.json',
   '/icons/sun.svg',
   '/icons/moon.svg',
