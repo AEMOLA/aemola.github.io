@@ -92,6 +92,15 @@
       pointer-events:none;
       contain: layout style paint;
     }
+    .dynamic-wallpaper .wp-bg-image{
+      position:absolute;
+      inset:0;
+      width:100%; height:100%;
+      object-fit:cover;
+      opacity:.9;
+      z-index:-1;
+      display:none;
+    }
     .dynamic-wallpaper .sky{
       position:absolute;
       inset:0;
@@ -210,6 +219,27 @@
     .hint{ color: var(--muted); font-size:.85rem; line-height:1.5; }
     .divider{ height:1px; background: rgba(255,255,255,0.12); margin:10px 0; }
     .admin-badge{ display:inline-flex; gap:8px; align-items:center; font-weight:900; color:#141414; background: var(--gold); padding:6px 10px; border-radius:999px; }
+    .timeline-row{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .timeline-row input[type=range]{
+      flex:1;
+    }
+    .time-label{
+      min-width:70px;
+      text-align:center;
+      font-variant-numeric:tabular-nums;
+      font-size:.9rem;
+      color:var(--muted);
+    }
+    .arc-preview{
+      width:100%;
+      max-width:260px;
+      margin-top:6px;
+    }
   </style>
 </head>
 <body class="theme-day season-summer">
@@ -224,6 +254,7 @@
   <div class="layout">
     <div class="preview-frame" id="previewFrame" aria-label="پریویو">
       <div class="dynamic-wallpaper" id="dynamicWallpaper" aria-hidden="true">
+        <img src="" alt="" class="wp-bg-image" id="wallpaperBg">
         <div class="sky"></div>
         <img src="/icons/sun.svg" alt="" class="wp-sun" id="wallpaperSun">
         <img src="/icons/moon.svg" alt="" class="wp-moon" id="wallpaperMoon">
@@ -278,6 +309,16 @@
           </div>
         </div>
 
+        <div class="timeline-row">
+          <label style="min-width:70px;">تایم‌لاین</label>
+          <input id="timeSlider" type="range" min="0" max="1439" value="0" />
+          <span class="time-label" id="timeLabel">--:--</span>
+        </div>
+        <svg class="arc-preview" id="arcPreview" viewBox="0 0 120 60">
+          <path id="arcPath" d="M10 45 Q60 10 110 45" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="2" stroke-linecap="round"/>
+          <circle id="arcDot" cx="10" cy="45" r="3.5" fill="#ffd54f" stroke="#ffb300" stroke-width="1.2"/>
+        </svg>
+
         <div class="row">
           <div>
             <label>تم</label>
@@ -300,7 +341,18 @@
         </div>
 
         <div class="divider"></div>
-        <div class="hint">ادمین اگر لاگین باشد می‌تواند تغییرات صحنه را ذخیره کند و برای همه کاربران اعمال شود.</div>
+        <div class="hint">این صفحه فقط تنظیمات محلی همین دستگاه را عوض می‌کند. (برای VIP/ادمین اینجا را برای تنظیم شخصی صحنه استفاده کن.)</div>
+
+        <div class="divider"></div>
+        <div class="row">
+          <div>
+            <label>لینک بک‌گراند سفارشی (تصویر)</label>
+            <input id="bgUrlInput" type="url" placeholder="https://..." />
+          </div>
+          <div style="display:flex; align-items:flex-end;">
+            <button class="btn" id="bgApplyBtn" type="button"><i class="fas fa-image"></i> اعمال بک‌گراند</button>
+          </div>
+        </div>
 
         <div id="adminBox" style="display:block;">
           <div style="margin:10px 0;">
@@ -435,6 +487,7 @@
     (function () {
       const QUALITY_KEY = 'wallpaperQuality';
       const SCENE_KEY = 'sceneConfigV1';
+      const BG_KEY = 'sceneBgUrl';
       const DEFAULT_SCENE = {
         v: 1,
         desktop: {
@@ -485,6 +538,14 @@
 
       function applySeasonAssets() {
         const b = document.body;
+        const bgImg = document.getElementById('wallpaperBg');
+        try {
+          const url = (localStorage.getItem(BG_KEY) || '').trim();
+          if (bgImg) {
+            if (url) { bgImg.src = url; bgImg.style.display = 'block'; }
+            else { bgImg.style.display = 'none'; bgImg.src = ''; }
+          }
+        } catch (e) {}
         document.querySelectorAll('.wp-ground').forEach(el => el.style.display = 'none');
         if (b.classList.contains('season-spring')) document.querySelector('.wp-ground-spring').style.display='block';
         else if (b.classList.contains('season-summer')) document.querySelector('.wp-ground-summer').style.display='block';
@@ -581,6 +642,24 @@
         }
       }
 
+      function updateArcPreview(totalMinutes){
+        const arcDot = document.getElementById('arcDot');
+        const m = typeof totalMinutes === 'number' ? totalMinutes : 12*60;
+        const isDay = (m>=6*60 && m<18*60);
+        let progress;
+        if (isDay){
+          progress = Math.max(0, Math.min(1, (m-6*60)/(12*60)));
+        } else {
+          const nightStart=18*60, nightEnd=30*60;
+          const cur = m>=nightStart ? m-nightStart : (24*60-nightStart)+m;
+          progress = Math.max(0, Math.min(1, cur/(nightEnd-nightStart)));
+        }
+        const x = 10 + progress*100;
+        const y = 45 - Math.sin(progress*Math.PI)*30;
+        arcDot.setAttribute('cx', x);
+        arcDot.setAttribute('cy', y);
+      }
+
       // stars (simple)
       function createStars(){
         const el = document.getElementById('starsContainer');
@@ -602,6 +681,10 @@
         const platformSelect = document.getElementById('platformSelect');
         const themeSelect = document.getElementById('themeSelect');
         const seasonSelect = document.getElementById('seasonSelect');
+        const timeSlider = document.getElementById('timeSlider');
+        const timeLabel = document.getElementById('timeLabel');
+        const bgUrlInput = document.getElementById('bgUrlInput');
+        const bgApplyBtn = document.getElementById('bgApplyBtn');
 
         qualitySelect.value = getQuality();
         qualitySelect.addEventListener('change', ()=>{
@@ -618,6 +701,27 @@
           applySceneToPreview(cfg, platformSelect.value);
           updateSunMoonPosition(cfg, platformSelect.value);
         });
+
+        if (timeSlider && timeLabel){
+          timeSlider.addEventListener('input', ()=>{
+            const m = parseInt(timeSlider.value,10);
+            const hh = String(Math.floor(m/60)).padStart(2,'0');
+            const mm = String(m%60).padStart(2,'0');
+            timeLabel.textContent = hh+':'+mm;
+            updateArcPreview(m);
+          });
+        }
+
+        if (bgApplyBtn){
+          bgApplyBtn.addEventListener('click', ()=>{
+            const url = (bgUrlInput.value || '').trim();
+            try{
+              if (url) localStorage.setItem(BG_KEY, url);
+              else localStorage.removeItem(BG_KEY);
+            }catch(e){}
+            applySeasonAssets();
+          });
+        }
       }
 
       // نسخهٔ «محلی» (localStorage) — بدون ذخیرهٔ جهانی روی دیتابیس
@@ -693,6 +797,15 @@
         applySeasonAssets();
         applySceneToPreview(cfg, platformKey);
         createStars();
+        const now = new Date(Date.now() + 3.5*60*60*1000);
+        const mNow = now.getUTCHours()*60 + now.getUTCMinutes();
+        const timeSlider = document.getElementById('timeSlider');
+        const timeLabel = document.getElementById('timeLabel');
+        if (timeSlider && timeLabel){
+          timeSlider.value = mNow;
+          timeLabel.textContent = String(now.getUTCHours()).padStart(2,'0') + ':' + String(now.getUTCMinutes()).padStart(2,'0');
+          updateArcPreview(mNow);
+        }
         updateSunMoonPosition(cfg, platformKey);
         setInterval(()=> updateSunMoonPosition(loadScene(), document.getElementById('platformSelect').value), 30000);
       }
