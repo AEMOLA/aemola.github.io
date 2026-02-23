@@ -700,6 +700,14 @@
           const cfg = loadScene();
           applySceneToPreview(cfg, platformSelect.value);
           updateSunMoonPosition(cfg, platformSelect.value);
+          // زمان فعلی را روی تایملاین هم sync کن
+          const now = new Date(Date.now() + 3.5*60*60*1000);
+          const mNow = now.getUTCHours()*60 + now.getUTCMinutes();
+          if (timeSlider && timeLabel){
+            timeSlider.value = mNow;
+            timeLabel.textContent = String(now.getUTCHours()).padStart(2,'0') + ':' + String(now.getUTCMinutes()).padStart(2,'0');
+            updateArcPreview(mNow);
+          }
         });
 
         if (timeSlider && timeLabel){
@@ -784,6 +792,28 @@
           saveSceneLocal(DEFAULT_SCENE);
           applySceneToPreview(DEFAULT_SCENE, platformSelect.value);
           updateSunMoonPosition(DEFAULT_SCENE, platformSelect.value);
+        });
+
+        // پیش‌نمایش زنده: هر تغییری در فیلدهای درخت/ابر بلافاصله روی صحنه اعمال شود (بدون ذخیره)
+        const liveIds = [
+          'arcMinY','arcMaxY','arcMinX','arcMaxX',
+          't1Side','t1Off','t1En',
+          't2Side','t2Off','t2En',
+          't3Side','t3Off','t3En',
+          'c1Top','c1Right','c1Dur','c1Delay','c1En',
+          'c2Top','c2Right','c2Dur','c2Delay','c2En',
+          'c3Top','c3Right','c3Dur','c3Delay','c3En'
+        ];
+        liveIds.forEach(id=>{
+          const el = document.getElementById(id);
+          if (!el) return;
+          const handler = ()=>{
+            const cfg = readEditorIntoConfig(loadScene(), platformSelect.value);
+            applySceneToPreview(cfg, platformSelect.value);
+            updateSunMoonPosition(cfg, platformSelect.value);
+          };
+          el.addEventListener('input', handler);
+          el.addEventListener('change', handler);
         });
       }
 
