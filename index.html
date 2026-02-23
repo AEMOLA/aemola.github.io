@@ -233,6 +233,17 @@
                 linear-gradient(180deg, #0a0a1a 0%, #1a0f0a 20%, #2a1a0f 40%, #3a2518 55%, #2a1a0f 70%, #1a0f0a 85%, #0a0a1a 100%);
         }
         /* خورشید و ماه — تصویر، بالاتر از وسط صفحه */
+        .dynamic-wallpaper .wp-bg-image {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            opacity: 0.9;
+            z-index: -1;
+            display: none;
+        }
         .dynamic-wallpaper .wp-sun,
         .dynamic-wallpaper .wp-moon {
             position: absolute;
@@ -1282,6 +1293,7 @@
 </head>
 <body>
     <div class="dynamic-wallpaper" id="dynamicWallpaper" aria-hidden="true">
+        <img src="" alt="" class="wp-bg-image" id="wallpaperBg" aria-hidden="true">
         <div class="sky"></div>
         <img src="/icons/sun.svg" alt="" class="wp-sun" id="wallpaperSun" aria-hidden="true">
         <img src="/icons/moon.svg" alt="" class="wp-moon" id="wallpaperMoon" aria-hidden="true">
@@ -1311,7 +1323,7 @@
     </div>
     <div class="container">
         <div class="header">
-            <button type="button" class="settings-trigger" id="settingsTrigger" aria-label="تنظیمات">
+            <button type="button" class="settings-trigger" id="settingsTrigger" aria-label="تنظیمات" style="display:none;">
                 <i class="fas fa-cog"></i>
             </button>
             <h1>
@@ -1728,6 +1740,7 @@
                 const logoutBtn = document.getElementById('logoutBtn');
                 const adminSection = document.getElementById('adminSection');
                 const testNotifBtn = document.getElementById('testNotificationBtn');
+                const settingsTrigger = document.getElementById('settingsTrigger');
 
                 if (isLoggedIn) {
                     emailInput.style.display = 'none';
@@ -1737,6 +1750,7 @@
                     adminSection.classList.add('visible');
                     document.getElementById('bellSoundUrl').value = bellSoundUrl;
                     if (testNotifBtn) testNotifBtn.style.display = 'inline-block';
+                    if (settingsTrigger) settingsTrigger.style.display = 'inline-flex';
                 } else {
                     emailInput.style.display = 'inline-block';
                     passwordInput.style.display = 'inline-block';
@@ -1744,6 +1758,7 @@
                     logoutBtn.style.display = 'none';
                     adminSection.classList.remove('visible');
                     if (testNotifBtn) testNotifBtn.style.display = 'none';
+                    if (settingsTrigger) settingsTrigger.style.display = 'none';
                 }
             }
 
@@ -2107,6 +2122,7 @@
         (function wallpaper() {
             var TEHRAN_OFFSET_MS = 3.5 * 60 * 60 * 1000;
             var QUALITY_KEY = 'wallpaperQuality';
+            var BG_KEY = 'sceneBgUrl';
             var SCENE_KEY = 'sceneConfigV1';
             var DEFAULT_SCENE = {
                 v: 1,
@@ -2161,6 +2177,21 @@
                 if (sel) sel.value = getQuality();
                 document.body.classList.remove('quality-fast', 'quality-medium', 'quality-high');
                 document.body.classList.add('quality-' + getQuality());
+            }
+            function applyBackgroundFromStorage() {
+                try {
+                    var url = (typeof localStorage !== 'undefined' && localStorage.getItem(BG_KEY)) || '';
+                    var bg = document.getElementById('wallpaperBg');
+                    if (!bg) return;
+                    url = (url || '').trim();
+                    if (!url) {
+                        bg.style.display = 'none';
+                        bg.src = '';
+                        return;
+                    }
+                    bg.src = url;
+                    bg.style.display = 'block';
+                } catch (e) {}
             }
             function applySceneConfig() {
                 var scene = getActiveScene();
@@ -2336,6 +2367,7 @@
                 var sel = document.getElementById('wallpaperQualitySelect');
                 if (sel) sel.addEventListener('change', onQualityChange);
                 updateTheme();
+                applyBackgroundFromStorage();
                 applySceneConfig();
                 createStars();
                 createParticles();
